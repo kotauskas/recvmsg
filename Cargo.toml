@@ -1,0 +1,13 @@
+[package]
+name = "recvmsg"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.56.0"
+license = "0BSD"
+
+[features]
+default = []
+std = []
+std_net = ["std"]
+
+[dependencies]
