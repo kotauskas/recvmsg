@@ -8,6 +8,10 @@ license = "0BSD"
 [features]
 default = []
 std = []
-std_net = ["std"]
+std_net = ["std", "libc"]
 
 [dependencies]
+# Currently none on non-Unix platforms.
+
+[target.'cfg(unix)'.dependencies]
+libc = { version = "0.2.150", optional = true }

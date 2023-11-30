@@ -4,6 +4,19 @@ mod fwd;
 mod via;
 pub use via::*;
 
+mod r#impl {
+    #[cfg(feature = "std_net")]
+    mod net {
+        #[cfg(unix)]
+        mod unix;
+        #[cfg(windows)]
+        mod windows;
+
+        #[cfg(test)]
+        mod tests;
+    }
+}
+
 use crate::{MsgBuf, RecvResult, TryRecvResult};
 
 /// Receiving from socket-like connections with message boundaries with truncation detection.
