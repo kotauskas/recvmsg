@@ -4,8 +4,8 @@ use super::*;
 /// detection.
 pub trait TruncatingRecvMsgExt: TruncatingRecvMsg {
     /// Receives one message into the given buffer, returning:
-    /// - `Ok(Some(true))` if the message was truncated due to insufficient buffer size;
-    /// - `Ok(Some(false))` if it was not;
+    /// - `Ok(Some(true))` if the message was successfully received;
+    /// - `Ok(Some(false))` if it was truncated due to insufficient buffer size;
     /// - `Ok(None)` to indicate end of communication ("EOF");
     /// - `Err(..)` if an I/O error occured.
     ///
