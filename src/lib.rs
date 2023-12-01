@@ -1,3 +1,5 @@
+//! [![Rust version: 1.56+](https://img.shields.io/badge/rust%20version-1.56+-orange)](https://blog.rust-lang.org/2021/10/21/Rust-1.56.0.html)
+//!
 //! Traits for receiving datagrams reliably, without truncation.
 //!
 //! # Problem
@@ -32,8 +34,13 @@
 //! an extension of those and is thus available as [`TruncatingRecvMsgWithFullSize`]. Both of those
 //! have async counterparts.
 //!
-//! [`RecvMsg`] or [`AsyncRecvMsg`] is then to be implemented in terms of either of those traits
+//! [`RecvMsg`] or [`AsyncRecvMsg`] are then to be implemented in terms of either of those traits
 //! using the appropriate helper function from the corresponding module.
+//!
+//! # Feature flags
+//! - *`std`* – `std::error::Error` on [`QuotaExceeded`]. Precludes `#![no_std]`.
+//! - *`std_net`* – implementations of traits on types from `std::net` and `std::os::unix::net`
+//!   (Unix domain sockets) on Unix.
 
 #![cfg_attr(not(feature = "std"), no_std)]
 #![forbid(unsafe_op_in_unsafe_fn)]
@@ -43,6 +50,7 @@ extern crate alloc;
 // TODO API for receiving multiple messages
 // TODO recvfrom
 // TODO vectored
+// TODO Tokio and async-std
 // TODO std impls
 // TODO mut forwarding
 
