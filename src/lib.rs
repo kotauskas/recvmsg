@@ -41,6 +41,8 @@
 extern crate alloc;
 
 // TODO API for receiving multiple messages
+// TODO recvfrom
+// TODO vectored
 // TODO std impls
 // TODO mut forwarding
 
@@ -61,6 +63,7 @@ pub use {
     sync::{RecvMsg, TruncatingRecvMsg, TruncatingRecvMsgWithFullSize},
 };
 
+#[track_caller]
 fn panic_try_recv_retcon() -> ! {
     panic!(
         "\
