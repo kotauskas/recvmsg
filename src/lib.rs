@@ -50,8 +50,18 @@ extern crate alloc;
 mod macros;
 
 pub mod r#async; // ya can't stop me
-mod msgbuf;
 pub mod sync;
+
+/// OS-specific functionality. Only available when the standard library is enabled.
+#[cfg(feature = "std")]
+pub mod os {
+    /// Unix-specific functionality.
+    #[cfg(unix)]
+    pub mod unix;
+}
+
+mod msgbuf;
+
 pub use {
     msgbuf::*,
     r#async::{
