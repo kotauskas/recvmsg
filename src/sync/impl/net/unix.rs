@@ -1,9 +1,6 @@
 #![allow(unsafe_code)]
 
-use crate::{
-    os::unix::recv_trunc_recvmsg_with_msghdr, MsgBuf, RecvMsg, RecvResult, TruncatingRecvMsg,
-    TruncatingRecvMsgWithFullSize, TryRecvResult,
-};
+use crate::{os::unix::recv_trunc_recvmsg_with_msghdr, MsgBuf, RecvMsg, RecvResult, TruncatingRecvMsg, TryRecvResult};
 use libc::{msghdr, MSG_PEEK};
 use std::{
     io,
@@ -15,7 +12,7 @@ use std::{
     },
 };
 
-fn recv_trunc(fd: BorrowedFd<'_>, peek: bool, buf: &mut MsgBuf<'_>) -> io::Result<Option<bool>> {
+pub(crate) fn recv_trunc(fd: BorrowedFd<'_>, peek: bool, buf: &mut MsgBuf<'_>) -> io::Result<Option<bool>> {
     unsafe {
         let mut hdr = zeroed::<msghdr>();
         Ok(recv_trunc_recvmsg_with_msghdr(fd, &mut hdr, buf, if peek { MSG_PEEK } else { 0 })?.0)
@@ -23,7 +20,11 @@ fn recv_trunc(fd: BorrowedFd<'_>, peek: bool, buf: &mut MsgBuf<'_>) -> io::Resul
 }
 
 #[cfg(any(target_os = "linux", target_os = "android"))]
-fn recv_trunc_with_full_size(fd: BorrowedFd<'_>, peek: bool, buf: &mut MsgBuf<'_>) -> io::Result<TryRecvResult> {
+pub(crate) fn recv_trunc_with_full_size(
+    fd: BorrowedFd<'_>,
+    peek: bool,
+    buf: &mut MsgBuf<'_>,
+) -> io::Result<TryRecvResult> {
     Ok(
         match unsafe {
             let mut hdr = zeroed::<msghdr>();
@@ -54,7 +55,7 @@ impl TruncatingRecvMsg for UdpSocket {
 
 /// Linux-only, requires kernel 3.4 or newer.
 #[cfg(any(target_os = "linux", target_os = "android"))]
-impl TruncatingRecvMsgWithFullSize for &UdpSocket {
+impl crate::TruncatingRecvMsgWithFullSize for &UdpSocket {
     #[inline]
     fn recv_trunc_with_full_size(&mut self, peek: bool, buf: &mut MsgBuf<'_>) -> io::Result<TryRecvResult> {
         recv_trunc_with_full_size(self.as_fd(), peek, buf)
@@ -63,7 +64,7 @@ impl TruncatingRecvMsgWithFullSize for &UdpSocket {
 
 /// Linux-only, requires kernel 3.4 or newer.
 #[cfg(any(target_os = "linux", target_os = "android"))]
-impl TruncatingRecvMsgWithFullSize for UdpSocket {
+impl crate::TruncatingRecvMsgWithFullSize for UdpSocket {
     #[inline]
     fn recv_trunc_with_full_size(&mut self, peek: bool, buf: &mut MsgBuf<'_>) -> io::Result<TryRecvResult> {
         (&*self).recv_trunc_with_full_size(peek, buf)
@@ -111,7 +112,7 @@ impl TruncatingRecvMsg for UnixDatagram {
 
 /// Linux-only, requires kernel 3.4 or newer.
 #[cfg(any(target_os = "linux", target_os = "android"))]
-impl TruncatingRecvMsgWithFullSize for &UnixDatagram {
+impl crate::TruncatingRecvMsgWithFullSize for &UnixDatagram {
     #[inline]
     fn recv_trunc_with_full_size(&mut self, peek: bool, buf: &mut MsgBuf<'_>) -> io::Result<TryRecvResult> {
         recv_trunc_with_full_size(self.as_fd(), peek, buf)
@@ -120,7 +121,7 @@ impl TruncatingRecvMsgWithFullSize for &UnixDatagram {
 
 /// Linux-only, requires kernel 3.4 or newer.
 #[cfg(any(target_os = "linux", target_os = "android"))]
-impl TruncatingRecvMsgWithFullSize for UnixDatagram {
+impl crate::TruncatingRecvMsgWithFullSize for UnixDatagram {
     #[inline]
     fn recv_trunc_with_full_size(&mut self, peek: bool, buf: &mut MsgBuf<'_>) -> io::Result<TryRecvResult> {
         (&*self).recv_trunc_with_full_size(peek, buf)
