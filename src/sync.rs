@@ -6,7 +6,7 @@ pub use via::*;
 
 mod r#impl {
     #[cfg(feature = "std_net")]
-    mod net {
+    mod udp {
         #[cfg(unix)]
         mod unix;
         #[cfg(windows)]
