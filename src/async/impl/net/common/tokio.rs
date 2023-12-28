@@ -84,8 +84,6 @@ $(
 )+
 }};}
 
-// TODO ATRMWFS
-
 macro_rules! impl_arm {
 (for [$($ty:ty),+ $(,)?], with $lfn:path) => { mod _impl_arm {
 #[allow(unused_imports)]
