@@ -41,9 +41,10 @@ pub trait TruncatingRecvMsg {
     /// - **Must** set `buf.is_one_msg` to `true` when returning `Ok(..)`.
     /// - **Must not** affect the capacity of `buf`.
     /// - **Must not** decrease the initialization cursor or the fill cursor of `buf`.
-    /// - **Must** set the fill cursor to the size of the received message (size *after* truncation, not
-    ///   actual size of the message) and not modify it in any other circumstances.
-    fn recv_trunc(&mut self, peek: bool, buf: &mut MsgBuf<'_>) -> Result<Option<bool>, Self::Error>;
+    /// - **Must** set the fill cursor to the size of the received message (size *after* truncation,
+    ///   not actual size of the message) and not modify it in any other circumstances.
+    fn recv_trunc(&mut self, peek: bool, buf: &mut MsgBuf<'_>)
+        -> Result<Option<bool>, Self::Error>;
 
     /// Discards the message at the front of the queue. If at end-of-communication, succeeds with no
     /// effect.
@@ -57,7 +58,11 @@ pub trait TruncatingRecvMsg {
 pub trait TruncatingRecvMsgWithFullSize: TruncatingRecvMsg {
     /// Like [`.recv_trunc()`](TruncatingRecvMsg::recv_trunc), but returns the true length of the
     /// message *(size before truncation)*.
-    fn recv_trunc_with_full_size(&mut self, peek: bool, buf: &mut MsgBuf<'_>) -> Result<TryRecvResult, Self::Error>;
+    fn recv_trunc_with_full_size(
+        &mut self,
+        peek: bool,
+        buf: &mut MsgBuf<'_>,
+    ) -> Result<TryRecvResult, Self::Error>;
 
     /// Attempts to receive one message using the given buffer. If the message at the front of the
     /// queue does not fit, no (re)allocation is done and the message is neither written to the

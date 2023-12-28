@@ -85,7 +85,12 @@ impl MsgBuf<'_> {
     /// Mutably borrows the part of the buffer which is initialized but unfilled.
     #[inline]
     pub fn init_but_unfilled_part_mut(&mut self) -> &mut [u8] {
-        unsafe { slice::from_raw_parts_mut(self.unfilled_start_mut().cast(), self.len_init_but_unfilled()) }
+        unsafe {
+            slice::from_raw_parts_mut(
+                self.unfilled_start_mut().cast(),
+                self.len_init_but_unfilled(),
+            )
+        }
     }
 
     /// Borrows the initialized (but potentially partially unfilled) part of the buffer.
@@ -113,7 +118,8 @@ impl MsgBuf<'_> {
     #[inline]
     pub fn split_at_fill(&mut self) -> (&[u8], MsgBuf<'_>) {
         let mut rh: MsgBuf<'_> =
-            unsafe { slice::from_raw_parts_mut(self.unfilled_start_mut(), self.len_unfilled()) }.into();
+            unsafe { slice::from_raw_parts_mut(self.unfilled_start_mut(), self.len_unfilled()) }
+                .into();
         unsafe {
             // SAFETY: this is the well-initialized but unfilled part.
             rh.set_init(self.len_init_but_unfilled());

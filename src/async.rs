@@ -107,7 +107,10 @@ pub trait TruncatingRecvMsg {
     /// # Contract notes
     /// - **Must not** return `Poll::Pending` if the previous call to `.poll_recv_trunc()` was
     ///   `peek = true` and returned `Poll::Ready`.
-    fn poll_discard_msg(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
+    fn poll_discard_msg(
+        self: Pin<&mut Self>,
+        cx: &mut Context<'_>,
+    ) -> Poll<Result<(), Self::Error>> {
         match ready!(self.poll_recv_trunc(cx, false, &mut MsgBuf::default())) {
             Ok(..) => Ok(()),
             Err(e) => Err(e),

@@ -44,7 +44,9 @@ pub struct RecvTruncWithFullSize<'io, 'buf, 'slice, TRMWFS: ?Sized> {
     pub(super) peek: bool,
     pub(super) buf: &'buf mut MsgBuf<'slice>,
 }}
-impl<TRMWFS: TruncatingRecvMsgWithFullSize + Unpin + ?Sized> Future for RecvTruncWithFullSize<'_, '_, '_, TRMWFS> {
+impl<TRMWFS: TruncatingRecvMsgWithFullSize + Unpin + ?Sized> Future
+    for RecvTruncWithFullSize<'_, '_, '_, TRMWFS>
+{
     type Output = Result<TryRecvResult, TRMWFS::Error>;
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         let Self { recver, peek, buf } = self.get_mut();
@@ -60,10 +62,7 @@ pub struct TryRecv<'io, 'buf, 'slice, TRMWFS: ?Sized> {
 }}
 impl<'io, 'buf, 'slice, TRMWFS: ?Sized> TryRecv<'io, 'buf, 'slice, TRMWFS> {
     pub(super) fn new(recver: &'io mut TRMWFS, buf: &'buf mut MsgBuf<'slice>) -> Self {
-        Self {
-            recver,
-            state: TryRecvState::Recving { buf },
-        }
+        Self { recver, state: TryRecvState::Recving { buf } }
     }
 }
 
@@ -74,13 +73,16 @@ enum TryRecvState<'buf, 'slice> {
     End,
 }
 
-impl<TRMWFS: TruncatingRecvMsgWithFullSize + Unpin + ?Sized> Future for TryRecv<'_, '_, '_, TRMWFS> {
+impl<TRMWFS: TruncatingRecvMsgWithFullSize + Unpin + ?Sized> Future
+    for TryRecv<'_, '_, '_, TRMWFS>
+{
     type Output = Result<TryRecvResult, TRMWFS::Error>;
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         let slf = self.get_mut();
         match &mut slf.state {
             TryRecvState::Recving { buf } => {
-                let Poll::Ready(rslt) = Pin::new(&mut *slf.recver).poll_recv_trunc_with_full_size(cx, true, buf)?
+                let Poll::Ready(rslt) =
+                    Pin::new(&mut *slf.recver).poll_recv_trunc_with_full_size(cx, true, buf)?
                 else {
                     return Poll::Pending;
                 };
@@ -98,17 +100,19 @@ impl<TRMWFS: TruncatingRecvMsgWithFullSize + Unpin + ?Sized> Future for TryRecv<
                     TryRecvResult::EndOfStream => Poll::Ready(Ok(TryRecvResult::EndOfStream)),
                 }
             }
-            TryRecvState::Discarding { sz } => match Pin::new(&mut *slf.recver).poll_discard_msg(cx) {
-                Poll::Ready(r) => {
-                    let sz = *sz;
-                    slf.state = TryRecvState::End;
-                    Poll::Ready(match r {
-                        Ok(()) => Ok(TryRecvResult::Fit(sz)),
-                        Err(e) => Err(e),
-                    })
+            TryRecvState::Discarding { sz } => {
+                match Pin::new(&mut *slf.recver).poll_discard_msg(cx) {
+                    Poll::Ready(r) => {
+                        let sz = *sz;
+                        slf.state = TryRecvState::End;
+                        Poll::Ready(match r {
+                            Ok(()) => Ok(TryRecvResult::Fit(sz)),
+                            Err(e) => Err(e),
+                        })
+                    }
+                    Poll::Pending => Poll::Pending,
                 }
-                Poll::Pending => Poll::Pending,
-            },
+            }
             TryRecvState::End => panic!("attempt to poll a future which has already completed"),
         }
     }

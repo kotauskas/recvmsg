@@ -73,7 +73,8 @@ mod msgbuf;
 pub use {
     msgbuf::*,
     r#async::{
-        RecvMsg as AsyncRecvMsg, RecvMsgExt as AsyncRecvMsgExt, TruncatingRecvMsg as AsyncTruncatingRecvMsg,
+        RecvMsg as AsyncRecvMsg, RecvMsgExt as AsyncRecvMsgExt,
+        TruncatingRecvMsg as AsyncTruncatingRecvMsg,
         TruncatingRecvMsgExt as AsyncTruncatingRecvMsgExt,
         TruncatingRecvMsgWithFullSize as AsyncTruncatingRecvMsgWithFullSize,
         TruncatingRecvMsgWithFullSizeExt as AsyncTruncatingRecvMsgWithFullSizeExt,

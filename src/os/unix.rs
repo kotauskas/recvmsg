@@ -26,10 +26,7 @@ pub unsafe fn recv_trunc_recvmsg_with_msghdr(
     buf.is_one_msg = false;
 
     let out = &mut buf[..];
-    let mut iov = iovec {
-        iov_base: out.as_mut_ptr().cast(),
-        iov_len: out.len(),
-    };
+    let mut iov = iovec { iov_base: out.as_mut_ptr().cast(), iov_len: out.len() };
     hdr.msg_iov = &mut iov;
     hdr.msg_iovlen = 1;
 

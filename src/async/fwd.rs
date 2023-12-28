@@ -39,8 +39,8 @@ impl<T: TruncatingRecvMsg + Unpin + ?Sized> TruncatingRecvMsg for Box<T> {
     }
 }
 
-impl<T: TruncatingRecvMsgWithFullSize + ?Sized, P: DerefMut<Target = T> + Unpin> TruncatingRecvMsgWithFullSize
-    for Pin<P> // I hate Rustfmt
+impl<T: TruncatingRecvMsgWithFullSize + ?Sized, P: DerefMut<Target = T> + Unpin>
+    TruncatingRecvMsgWithFullSize for Pin<P>
 {
     forward_trait_methods! {
         pin_fn poll_recv_trunc_with_full_size(

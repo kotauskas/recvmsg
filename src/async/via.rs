@@ -11,7 +11,9 @@ fn dbgtrp(msg: &str) {
 
 /// Implements [`TruncatingRecvMsg::poll_recv_trunc()`] via
 /// [`TruncatingRecvMsgWithFullSize::poll_recv_trunc_with_full_size()`].
-pub fn poll_recv_trunc_via_poll_recv_trunc_with_full_size<ATRMWFS: TruncatingRecvMsgWithFullSize + ?Sized>(
+pub fn poll_recv_trunc_via_poll_recv_trunc_with_full_size<
+    ATRMWFS: TruncatingRecvMsgWithFullSize + ?Sized,
+>(
     slf: Pin<&mut ATRMWFS>,
     cx: &mut Context<'_>,
     peek: bool,

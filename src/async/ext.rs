@@ -22,11 +22,7 @@ pub trait TruncatingRecvMsgExt: TruncatingRecvMsg {
     where
         Self: Unpin,
     {
-        RecvTrunc {
-            recver: self,
-            peek,
-            buf,
-        }
+        RecvTrunc { recver: self, peek, buf }
     }
 
     /// Discards the message at the front of the queue. If at end-of-communication, succeeds with no
@@ -52,11 +48,7 @@ pub trait TruncatingRecvMsgWithFullSizeExt: TruncatingRecvMsgWithFullSize {
     where
         Self: Unpin,
     {
-        RecvTruncWithFullSize {
-            recver: self,
-            peek,
-            buf,
-        }
+        RecvTruncWithFullSize { recver: self, peek, buf }
     }
     /// Attempts to receive one message using the given buffer. If the message at the front of the
     /// queue does not fit, no (re)allocation is done and the message is neither written to the
@@ -84,7 +76,10 @@ pub trait RecvMsgExt: RecvMsg {
     /// If the operation could not be completed for external reasons, an error from the outermost
     /// `Result` is returned.
     #[inline]
-    fn recv_msg<'io, 'buf, 'slice: 'buf>(&'io mut self, buf: &'buf mut MsgBuf<'slice>) -> Recv<'io, 'buf, 'slice, Self>
+    fn recv_msg<'io, 'buf, 'slice: 'buf>(
+        &'io mut self,
+        buf: &'buf mut MsgBuf<'slice>,
+    ) -> Recv<'io, 'buf, 'slice, Self>
     where
         Self: Unpin,
     {
