@@ -68,7 +68,7 @@ pub trait TruncatingRecvMsgWithFullSize: TruncatingRecvMsg {
     ///
     /// This method simplifies use of `.recv_trunc_with_full_size()` by keeping `buf` consistent in
     /// error conditions and making the call to `.discard_msg()` implicitly as needed.
-    fn try_recv(&mut self, buf: &mut MsgBuf<'_>) -> Result<TryRecvResult, Self::Error> {
+    fn try_recv_msg(&mut self, buf: &mut MsgBuf<'_>) -> Result<TryRecvResult, Self::Error> {
         Ok(match self.recv_trunc_with_full_size(true, buf)? {
             TryRecvResult::Fit(sz) => {
                 debug_assert_eq!(buf.len_filled(), sz);
@@ -97,5 +97,5 @@ pub trait RecvMsg {
     ///
     /// If the operation could not be completed for external reasons, an error from the outermost
     /// `Result` is returned.
-    fn recv(&mut self, buf: &mut MsgBuf<'_>) -> Result<RecvResult, Self::Error>;
+    fn recv_msg(&mut self, buf: &mut MsgBuf<'_>) -> Result<RecvResult, Self::Error>;
 }

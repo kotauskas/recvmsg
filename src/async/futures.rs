@@ -52,7 +52,7 @@ impl<TRMWFS: TruncatingRecvMsgWithFullSize + Unpin + ?Sized> Future for RecvTrun
     }
 }
 
-futdoc! { TruncatingRecvMsgWithFullSizeExt::try_recv
+futdoc! { TruncatingRecvMsgWithFullSizeExt::try_recv_msg
 #[derive(Debug)]
 pub struct TryRecv<'io, 'buf, 'slice, TRMWFS: ?Sized> {
     recver: &'io mut TRMWFS,
@@ -114,7 +114,7 @@ impl<TRMWFS: TruncatingRecvMsgWithFullSize + Unpin + ?Sized> Future for TryRecv<
     }
 }
 
-futdoc! { ReliableRecvMsgExt::recv
+futdoc! { ReliableRecvMsgExt::recv_msg
 #[derive(Debug)]
 pub struct Recv<'io, 'buf, 'slice: 'buf, RM: ?Sized> {
     pub(super) recver: &'io mut RM,
@@ -124,6 +124,6 @@ impl<'buf, RM: RecvMsg + Unpin + ?Sized> Future for Recv<'_, 'buf, '_, RM> {
     type Output = Result<RecvResult, RM::Error>;
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         let Recv { recver, buf } = self.get_mut();
-        Pin::new(&mut **recver).poll_recv(cx, buf)
+        Pin::new(&mut **recver).poll_recv_msg(cx, buf)
     }
 }

@@ -19,25 +19,25 @@ impl<T: TruncatingRecvMsg + ?Sized> TruncatingRecvMsg for Box<T> {
 impl<T: TruncatingRecvMsgWithFullSize + ?Sized> TruncatingRecvMsgWithFullSize for &mut T {
     forward_trait_methods! {
         fn recv_trunc_with_full_size(&mut self, peek: bool, buf: &mut MsgBuf<'_>) -> Result<TryRecvResult, Self::Error>;
-        fn try_recv(&mut self, buf: &mut MsgBuf<'_>) -> Result<TryRecvResult, Self::Error>;
+        fn try_recv_msg(&mut self, buf: &mut MsgBuf<'_>) -> Result<TryRecvResult, Self::Error>;
     }
 }
 impl<T: TruncatingRecvMsgWithFullSize + ?Sized> TruncatingRecvMsgWithFullSize for Box<T> {
     forward_trait_methods! {
         fn recv_trunc_with_full_size(&mut self, peek: bool, buf: &mut MsgBuf<'_>) -> Result<TryRecvResult, Self::Error>;
-        fn try_recv(&mut self, buf: &mut MsgBuf<'_>) -> Result<TryRecvResult, Self::Error>;
+        fn try_recv_msg(&mut self, buf: &mut MsgBuf<'_>) -> Result<TryRecvResult, Self::Error>;
     }
 }
 
 impl<T: RecvMsg + ?Sized> RecvMsg for &mut T {
     type Error = T::Error;
     forward_trait_methods! {
-        fn recv(&mut self, buf: &mut MsgBuf<'_>) -> Result<RecvResult, Self::Error>;
+        fn recv_msg(&mut self, buf: &mut MsgBuf<'_>) -> Result<RecvResult, Self::Error>;
     }
 }
 impl<T: RecvMsg + ?Sized> RecvMsg for alloc::boxed::Box<T> {
     type Error = T::Error;
     forward_trait_methods! {
-        fn recv(&mut self, buf: &mut MsgBuf<'_>) -> Result<RecvResult, Self::Error>;
+        fn recv_msg(&mut self, buf: &mut MsgBuf<'_>) -> Result<RecvResult, Self::Error>;
     }
 }

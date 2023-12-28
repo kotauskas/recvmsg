@@ -41,8 +41,8 @@ the memory allocator decides to be smarter than usual and give us a huge buffer 
         assert_eq!(buf.len_filled(), msg.len());
         assert_eq!(from_utf8(buf.filled_part()).expect("invalid UTF-8"), msg);
     };
-    let rslt = RecvMsg::recv(&mut &s1, &mut buf1).expect("first receive failed");
+    let rslt = RecvMsg::recv_msg(&mut &s1, &mut buf1).expect("first receive failed");
     comck(rslt, &mut buf1);
-    let rslt = RecvMsg::recv(&mut &s2, &mut buf2).expect("second receive failed");
+    let rslt = RecvMsg::recv_msg(&mut &s2, &mut buf2).expect("second receive failed");
     comck(rslt, &mut buf2);
 }

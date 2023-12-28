@@ -75,7 +75,7 @@ impl<T: TruncatingRecvMsgWithFullSize + Unpin + ?Sized> TruncatingRecvMsgWithFul
 impl<T: RecvMsg + ?Sized, P: DerefMut<Target = T> + Unpin> RecvMsg for Pin<P> {
     type Error = T::Error;
     forward_trait_methods! {
-        pin_fn poll_recv(
+        pin_fn poll_recv_msg(
             self: Pin<&mut Self>,
             cx: &mut Context<'_>,
             buf: &mut MsgBuf<'_>,
@@ -85,7 +85,7 @@ impl<T: RecvMsg + ?Sized, P: DerefMut<Target = T> + Unpin> RecvMsg for Pin<P> {
 impl<T: RecvMsg + Unpin + ?Sized> RecvMsg for &mut T {
     type Error = T::Error;
     forward_trait_methods! {
-        deref_fn poll_recv(
+        deref_fn poll_recv_msg(
             self: Pin<&mut Self>,
             cx: &mut Context<'_>,
             buf: &mut MsgBuf<'_>,
@@ -95,7 +95,7 @@ impl<T: RecvMsg + Unpin + ?Sized> RecvMsg for &mut T {
 impl<T: RecvMsg + Unpin + ?Sized> RecvMsg for Box<T> {
     type Error = T::Error;
     forward_trait_methods! {
-        deref_fn poll_recv(
+        deref_fn poll_recv_msg(
             self: Pin<&mut Self>,
             cx: &mut Context<'_>,
             buf: &mut MsgBuf<'_>,

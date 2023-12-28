@@ -74,7 +74,7 @@ impl crate::TruncatingRecvMsgWithFullSize for UdpSocket {
 impl RecvMsg for &UdpSocket {
     type Error = io::Error;
     #[inline]
-    fn recv(&mut self, buf: &mut MsgBuf<'_>) -> io::Result<RecvResult> {
+    fn recv_msg(&mut self, buf: &mut MsgBuf<'_>) -> io::Result<RecvResult> {
         #[cfg(any(target_os = "linux", target_os = "android"))]
         {
             crate::sync::recv_via_try_recv(self, buf)
@@ -89,8 +89,8 @@ impl RecvMsg for &UdpSocket {
 impl RecvMsg for UdpSocket {
     type Error = io::Error;
     #[inline]
-    fn recv(&mut self, buf: &mut MsgBuf<'_>) -> io::Result<RecvResult> {
-        (&mut &*self).recv(buf)
+    fn recv_msg(&mut self, buf: &mut MsgBuf<'_>) -> io::Result<RecvResult> {
+        (&mut &*self).recv_msg(buf)
     }
 }
 
@@ -131,7 +131,7 @@ impl crate::TruncatingRecvMsgWithFullSize for UnixDatagram {
 impl RecvMsg for &UnixDatagram {
     type Error = io::Error;
     #[inline]
-    fn recv(&mut self, buf: &mut MsgBuf<'_>) -> io::Result<RecvResult> {
+    fn recv_msg(&mut self, buf: &mut MsgBuf<'_>) -> io::Result<RecvResult> {
         #[cfg(any(target_os = "linux", target_os = "android"))]
         {
             crate::sync::recv_via_try_recv(self, buf)
@@ -146,7 +146,7 @@ impl RecvMsg for &UnixDatagram {
 impl RecvMsg for UnixDatagram {
     type Error = io::Error;
     #[inline]
-    fn recv(&mut self, buf: &mut MsgBuf<'_>) -> io::Result<RecvResult> {
-        (&mut &*self).recv(buf)
+    fn recv_msg(&mut self, buf: &mut MsgBuf<'_>) -> io::Result<RecvResult> {
+        (&mut &*self).recv_msg(buf)
     }
 }

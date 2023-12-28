@@ -85,11 +85,12 @@ pub use {
 fn panic_try_recv_retcon() -> ! {
     panic!(
         "\
-try_recv() returned TryRecvResult::Failed for a buffer of a size that it reported was sufficient"
+try_recv_msg() returned TryRecvResult::Failed for a buffer of a size that it reported was \
+sufficient"
     )
 }
 
-/// Result type for `.recv()` methods.
+/// Result type for `.recv_msg()` methods.
 #[derive(Copy, Clone, Debug, Default)]
 pub enum RecvResult {
     /// The message stream has ended and no more messages will be received.
@@ -114,7 +115,7 @@ impl From<TryRecvResult> for RecvResult {
     }
 }
 
-/// Result type for `.try_recv()` and `.recv_trunc_with_full_size()` methods.
+/// Result type for `.try_recv_msg()` and `.recv_trunc_with_full_size()` methods.
 #[derive(Copy, Clone, Debug, Default)]
 pub enum TryRecvResult {
     /// The message stream has ended and no more messages will be received.
@@ -123,8 +124,8 @@ pub enum TryRecvResult {
     /// The message successfully fit into the provided buffer and is of the given size.
     Fit(usize),
     /// The message didn't fit into the provided buffer.
-    /// - If returned by `.try_recv()`, this means that initialized part of the buffer has not been
-    ///   modified, and the message at the front of the queue is of the given size.
+    /// - If returned by `.try_recv_msg()`, this means that initialized part of the buffer has not
+    ///   been modified, and the message at the front of the queue is of the given size.
     /// - If returned by `.recv_trunc_with_full_size()`, this means that the message was truncated.
     Spilled(usize),
 }

@@ -28,7 +28,7 @@ pub fn poll_recv_trunc_via_poll_recv_trunc_with_full_size<ATRMWFS: TruncatingRec
     .into()
 }
 
-/// Implements [`RecvMsg::poll_recv()`] via [`TruncatingRecvMsg::poll_recv_trunc()`].
+/// Implements [`RecvMsg::poll_recv_msg()`] via [`TruncatingRecvMsg::poll_recv_trunc()`].
 pub fn poll_recv_via_poll_recv_trunc<ATRM: TruncatingRecvMsg + ?Sized>(
     mut slf: Pin<&mut ATRM>,
     cx: &mut Context<'_>,
@@ -82,13 +82,14 @@ pub fn poll_recv_via_poll_recv_trunc<ATRM: TruncatingRecvMsg + ?Sized>(
     .into()
 }
 
-/// Implements [`RecvMsg::poll_recv()`] via [`TruncatingRecvMsgWithFullSizeExt::try_recv()`].
+/// Implements [`RecvMsg::poll_recv_msg()`] via
+/// [`TruncatingRecvMsgWithFullSizeExt::try_recv_msg()`].
 pub fn poll_recv_via_poll_try_recv<TRMWFS: TruncatingRecvMsgWithFullSize + ?Sized>(
     mut slf: Pin<&mut TRMWFS>,
     cx: &mut Context<'_>,
     buf: &mut MsgBuf<'_>,
 ) -> Poll<Result<RecvResult, TRMWFS::Error>> {
-    let mut poll_try_recv = |buf: &mut MsgBuf<'_>| Pin::new(&mut slf.try_recv(buf)).poll(cx);
+    let mut poll_try_recv = |buf: &mut MsgBuf<'_>| Pin::new(&mut slf.try_recv_msg(buf)).poll(cx);
     let ok = match ready!(poll_try_recv(buf)?).into() {
         RecvResult::Spilled(sz) => {
             if let Err(qe) = buf.ensure_capacity(sz) {

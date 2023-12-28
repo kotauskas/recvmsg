@@ -106,7 +106,7 @@ pub trait RecvMsg {
     ///
     /// If the operation could not be completed for external reasons, an error from the outermost
     /// `Result` is returned.
-    fn poll_recv(
+    fn poll_recv_msg(
         self: Pin<&mut Self>,
         cx: &mut Context<'_>,
         buf: &mut MsgBuf<'_>,

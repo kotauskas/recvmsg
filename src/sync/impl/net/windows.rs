@@ -36,14 +36,14 @@ impl TruncatingRecvMsg for UdpSocket {
 impl RecvMsg for &UdpSocket {
     type Error = io::Error;
     #[inline]
-    fn recv(&mut self, buf: &mut MsgBuf<'_>) -> io::Result<RecvResult> {
+    fn recv_msg(&mut self, buf: &mut MsgBuf<'_>) -> io::Result<RecvResult> {
         crate::sync::recv_via_recv_trunc(self, buf)
     }
 }
 impl RecvMsg for UdpSocket {
     type Error = io::Error;
     #[inline]
-    fn recv(&mut self, buf: &mut MsgBuf<'_>) -> io::Result<RecvResult> {
-        RecvMsg::recv(&mut &*self, buf)
+    fn recv_msg(&mut self, buf: &mut MsgBuf<'_>) -> io::Result<RecvResult> {
+        RecvMsg::recv_msg(&mut &*self, buf)
     }
 }

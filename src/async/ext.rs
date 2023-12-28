@@ -67,7 +67,10 @@ pub trait TruncatingRecvMsgWithFullSizeExt: TruncatingRecvMsgWithFullSize {
     ///
     /// This method simplifies use of `.recv_trunc_with_full_size()` by keeping `buf` consistent in
     /// error conditions and making the call to `.discard_msg()` implicitly as needed.
-    fn try_recv<'io, 'buf, 'slice>(&'io mut self, buf: &'buf mut MsgBuf<'slice>) -> TryRecv<'io, 'buf, 'slice, Self> {
+    fn try_recv_msg<'io, 'buf, 'slice>(
+        &'io mut self,
+        buf: &'buf mut MsgBuf<'slice>,
+    ) -> TryRecv<'io, 'buf, 'slice, Self> {
         TryRecv::new(self, buf)
     }
 }
@@ -81,7 +84,7 @@ pub trait RecvMsgExt: RecvMsg {
     /// If the operation could not be completed for external reasons, an error from the outermost
     /// `Result` is returned.
     #[inline]
-    fn recv<'io, 'buf, 'slice: 'buf>(&'io mut self, buf: &'buf mut MsgBuf<'slice>) -> Recv<'io, 'buf, 'slice, Self>
+    fn recv_msg<'io, 'buf, 'slice: 'buf>(&'io mut self, buf: &'buf mut MsgBuf<'slice>) -> Recv<'io, 'buf, 'slice, Self>
     where
         Self: Unpin,
     {
