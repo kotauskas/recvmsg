@@ -31,7 +31,10 @@ mod r#impl {
             mod tokio;
         }
         #[cfg(windows)]
-        mod windows {} // TODO
+        mod windows {
+            #[cfg(feature = "tokio")]
+            mod tokio;
+        }
 
         #[cfg(test)]
         mod tests;

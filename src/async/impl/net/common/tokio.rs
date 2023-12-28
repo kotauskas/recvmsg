@@ -1,3 +1,5 @@
+#![allow(unused_macros)]
+
 macro_rules! impl_atrm {
 (for [$($ty:ty),+ $(,)?], with $lfn:path) => { mod _impl_atrm {
 #[allow(unused_imports)]
@@ -6,7 +8,6 @@ use super::*;
 use crate::{r#async::ioloop, AsyncTruncatingRecvMsg, MsgBuf};
 use std::{
     io,
-    os::unix::io::AsFd,
     pin::Pin,
     task::{Context, Poll},
 };
@@ -22,7 +23,7 @@ $(
         ) -> Poll<io::Result<Option<bool>>> {
             ioloop(
                 self.get_mut(), cx,
-                |slf: &mut Self| $lfn(slf.as_fd(), peek, buf),
+                |slf: &mut Self| $lfn(slf, peek, buf),
                 |slf: &mut Self, cx| slf.poll_recv_ready(cx),
             )
         }
@@ -50,7 +51,6 @@ use super::*;
 use crate::{r#async::ioloop, AsyncTruncatingRecvMsgWithFullSize, MsgBuf, TryRecvResult};
 use std::{
     io,
-    os::unix::io::AsFd,
     pin::Pin,
     task::{Context, Poll},
 };
@@ -65,7 +65,7 @@ $(
         ) -> Poll<io::Result<TryRecvResult>> {
             ioloop(
                 self.get_mut(), cx,
-                |slf: &mut Self| $lfn(slf.as_fd(), peek, buf),
+                |slf: &mut Self| $lfn(slf, peek, buf),
                 |slf: &mut Self, cx| slf.poll_recv_ready(cx),
             )
         }
@@ -91,8 +91,7 @@ use super::*;
 
 use crate::{r#async::ioloop, AsyncRecvMsg, MsgBuf, RecvResult};
 use std::{
-    io::{self},
-    os::fd::AsFd,
+    io,
     pin::Pin,
     task::{Context, Poll},
 };
@@ -107,7 +106,7 @@ $(
         ) -> Poll<io::Result<RecvResult>> {
             ioloop(
                 self.get_mut(), cx,
-                |slf: &mut Self| $lfn(slf.as_fd(), buf),
+                |slf: &mut Self| $lfn(slf, buf),
                 |slf: &mut Self, cx| slf.poll_recv_ready(cx),
             )
 

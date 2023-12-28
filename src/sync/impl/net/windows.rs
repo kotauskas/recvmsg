@@ -5,23 +5,30 @@ use std::{io, net::UdpSocket};
 
 const WSAEMSGSIZE: i32 = 10040;
 
+pub(crate) fn recv_trunc(
+    buf: &mut MsgBuf<'_>,
+    f: impl FnOnce(&mut [u8]) -> io::Result<usize>,
+) -> io::Result<Option<bool>> {
+    buf.set_fill(0);
+    buf.is_one_msg = false;
+    buf.fully_initialize();
+    match f(buf.init_part_mut()) {
+        Ok(0) => Ok(None),
+        Ok(sz) => {
+            buf.set_fill(sz);
+            buf.is_one_msg = true;
+            Ok(Some(true))
+        }
+        Err(e) if e.raw_os_error() == Some(WSAEMSGSIZE) => Ok(Some(false)),
+        Err(e) => Err(e),
+    }
+}
+
 impl TruncatingRecvMsg for &UdpSocket {
     type Error = io::Error;
     fn recv_trunc(&mut self, peek: bool, buf: &mut MsgBuf<'_>) -> io::Result<Option<bool>> {
-        let f = if peek { UdpSocket::peek } else { UdpSocket::recv };
-        buf.set_fill(0);
-        buf.is_one_msg = false;
-        buf.fully_initialize();
-        match f(self, buf.init_part_mut()) {
-            Ok(0) => Ok(None),
-            Ok(sz) => {
-                buf.set_fill(sz);
-                buf.is_one_msg = true;
-                Ok(Some(true))
-            }
-            Err(e) if e.raw_os_error() == Some(WSAEMSGSIZE) => Ok(Some(false)),
-            Err(e) => Err(e),
-        }
+        let op = if peek { UdpSocket::peek } else { UdpSocket::recv };
+        recv_trunc(buf, |b| op(self, b))
     }
 }
 
