@@ -16,11 +16,52 @@ mod fwd;
 mod via;
 pub use {ext::*, futures::*, via::*};
 
+mod r#impl {
+    mod net {
+        #[rustfmt::skip]
+        #[macro_use]
+        mod common {
+            #[macro_use]
+            pub(super) mod tokio;
+        }
+
+        #[cfg(unix)]
+        mod unix {
+            #[cfg(feature = "tokio")]
+            mod tokio;
+        }
+        #[cfg(windows)]
+        mod windows {} // TODO
+
+        #[cfg(test)]
+        mod tests;
+    }
+}
+
 use crate::{MsgBuf, RecvResult, TryRecvResult};
 use core::{
     pin::Pin,
     task::{Context, Poll},
 };
+
+#[cfg(feature = "std")]
+fn ioloop<S, R>(
+    slf: &mut S,
+    cx: &mut Context<'_>,
+    mut op: impl FnMut(&mut S) -> std::io::Result<R>,
+    mut poll_ready: impl FnMut(&mut S, &mut Context<'_>) -> Poll<std::io::Result<()>>,
+) -> Poll<std::io::Result<R>> {
+    loop {
+        match op(slf) {
+            Ok(ok) => break Ok(ok),
+            Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => {
+                ready!(poll_ready(slf, cx))?;
+            }
+            Err(e) => break Err(e),
+        }
+    }
+    .into()
+}
 
 /// Implementation of reception from socket-like connections with message boundaries with truncation
 /// detection.

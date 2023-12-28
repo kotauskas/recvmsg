@@ -4,13 +4,13 @@ mod fwd;
 mod via;
 pub use via::*;
 
-mod r#impl {
+pub(crate) mod r#impl {
     #[cfg(feature = "std_net")]
-    mod net {
+    pub(crate) mod net {
         #[cfg(unix)]
-        mod unix;
+        pub(crate) mod unix;
         #[cfg(windows)]
-        mod windows;
+        pub(crate) mod windows;
 
         #[cfg(test)]
         mod tests;

@@ -37,6 +37,36 @@ pub(crate) fn recv_trunc_with_full_size(
     )
 }
 
+#[inline]
+pub(crate) fn recv_msg(fd: BorrowedFd<'_>, buf: &mut MsgBuf<'_>) -> io::Result<RecvResult> {
+    struct Impl<'a>(BorrowedFd<'a>);
+    impl TruncatingRecvMsg for Impl<'_> {
+        type Error = io::Error;
+        fn recv_trunc(&mut self, peek: bool, buf: &mut MsgBuf<'_>) -> Result<Option<bool>, Self::Error> {
+            recv_trunc(self.0, peek, buf)
+        }
+    }
+    #[cfg(any(target_os = "linux", target_os = "android"))]
+    impl crate::TruncatingRecvMsgWithFullSize for Impl<'_> {
+        fn recv_trunc_with_full_size(
+            &mut self,
+            peek: bool,
+            buf: &mut MsgBuf<'_>,
+        ) -> Result<TryRecvResult, Self::Error> {
+            recv_trunc_with_full_size(self.0, peek, buf)
+        }
+    }
+
+    #[cfg(any(target_os = "linux", target_os = "android"))]
+    {
+        crate::sync::recv_via_try_recv(&mut Impl(fd), buf)
+    }
+    #[cfg(not(any(target_os = "linux", target_os = "android")))]
+    {
+        crate::sync::recv_via_recv_trunc(&mut Impl(fd), buf)
+    }
+}
+
 impl TruncatingRecvMsg for &UdpSocket {
     type Error = io::Error;
     #[inline]
@@ -75,14 +105,7 @@ impl RecvMsg for &UdpSocket {
     type Error = io::Error;
     #[inline]
     fn recv_msg(&mut self, buf: &mut MsgBuf<'_>) -> io::Result<RecvResult> {
-        #[cfg(any(target_os = "linux", target_os = "android"))]
-        {
-            crate::sync::recv_via_try_recv(self, buf)
-        }
-        #[cfg(not(any(target_os = "linux", target_os = "android")))]
-        {
-            crate::sync::recv_via_recv_trunc(self, buf)
-        }
+        recv_msg(self.as_fd(), buf)
     }
 }
 
