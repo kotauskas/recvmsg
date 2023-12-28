@@ -49,7 +49,7 @@ pub trait TruncatingRecvMsg {
     /// Discards the message at the front of the queue. If at end-of-communication, succeeds with no
     /// effect.
     fn discard_msg(&mut self) -> Result<(), Self::Error> {
-        self.recv_trunc(false, &mut MsgBuf::default())?;
+        self.recv_trunc(false, &mut MsgBuf::from(&mut [0][..]))?;
         Ok(())
     }
 }

@@ -111,7 +111,7 @@ pub trait TruncatingRecvMsg {
         self: Pin<&mut Self>,
         cx: &mut Context<'_>,
     ) -> Poll<Result<(), Self::Error>> {
-        match ready!(self.poll_recv_trunc(cx, false, &mut MsgBuf::default())) {
+        match ready!(self.poll_recv_trunc(cx, false, &mut MsgBuf::from(&mut [0][..]))) {
             Ok(..) => Ok(()),
             Err(e) => Err(e),
         }
