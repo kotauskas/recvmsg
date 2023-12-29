@@ -66,9 +66,11 @@ pub mod os {
     pub mod unix;
 }
 
+mod empty;
 mod msgbuf;
 
 pub use {
+    empty::*,
     msgbuf::*,
     r#async::{
         RecvMsg as AsyncRecvMsg, RecvMsgExt as AsyncRecvMsgExt,
