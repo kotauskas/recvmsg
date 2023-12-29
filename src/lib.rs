@@ -50,8 +50,7 @@ extern crate alloc;
 // TODO API for receiving multiple messages
 // TODO recvfrom
 // TODO vectored
-// TODO Tokio and async-std
-// TODO std impls
+// TODO async-std
 // TODO mut forwarding
 
 #[macro_use]
