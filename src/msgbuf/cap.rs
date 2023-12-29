@@ -29,9 +29,14 @@ impl MsgBuf<'_> {
                 });
             }
         }
-        self.init = self.fill;
+        self.init = self.fill; // Avoids unnecessary copying of unfilled but initialized data
         let vec = if let Some(mut vec) = self.take_owned() {
-            vec.reserve(cap - self.init);
+            // Assumes `Vec`'s only heuristic is exponential growth, averting it if on track to
+            // exceed the quota.
+            let exp_would_overshoot = quota.map(|quota| cap * 2 > quota.get()).unwrap_or(false);
+            let op = if exp_would_overshoot { Vec::reserve_exact } else { Vec::reserve };
+            let incr = cap - vec.len();
+            op(&mut vec, incr);
             vec
         } else {
             let mut vec = Vec::with_capacity(cap);

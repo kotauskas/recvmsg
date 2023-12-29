@@ -103,9 +103,11 @@ pub struct MsgBuf<'buf> {
     /// Highest allowed capacity for growth operations. This will only take effect on the next
     /// memory allocation.
     ///
-    /// Note that `Vec` may overshoot this quota due to exponential growth. The worst case is that
-    /// twice the given amount of memory will be allocated. Keep this in mind when in low-memory
-    /// conditions.
+    /// Note that `Vec` may slightly overshoot this quota due to amortization heuristics or simply
+    /// due to the allocator providing excess capacity. This is accounted for via use of
+    /// [`Vec::reserve_exact()`] instead of [`Vec::reserve()`] when the requested capacity is within
+    /// a factor of two from the quota, which is modelled after `Vec`'s actual exponential growth
+    /// behavior and thus should prevent overshoots in all but the most exceptional of situations.
     pub quota: Option<NonZeroUsize>,
     /// Whether the well-initialized part of the buffer constitutes exactly one message.
     pub is_one_msg: bool,
