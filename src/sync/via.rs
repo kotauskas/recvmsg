@@ -30,7 +30,7 @@ pub fn recv_via_recv_trunc<TRM: TruncatingRecvMsg + ?Sized>(
             Ok(None) => return Ok(RecvResult::EndOfStream),
             Err(e) => {
                 buf.set_fill(0);
-                buf.is_one_msg = false;
+                buf.has_msg = false;
                 return Err(e);
             }
         };

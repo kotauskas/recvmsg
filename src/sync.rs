@@ -82,7 +82,7 @@ pub trait TruncatingRecvMsgWithFullSize: TruncatingRecvMsg {
             }
             TryRecvResult::Spilled(sz) => {
                 buf.set_fill(0);
-                buf.is_one_msg = false;
+                buf.has_msg = false;
                 TryRecvResult::Spilled(sz)
             }
             TryRecvResult::EndOfStream => TryRecvResult::EndOfStream,

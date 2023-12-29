@@ -47,7 +47,6 @@
 #![warn(missing_docs, unsafe_code)]
 extern crate alloc;
 
-// TODO API for receiving multiple messages
 // TODO recvfrom
 // TODO vectored
 // TODO async-std

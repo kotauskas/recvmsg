@@ -94,7 +94,7 @@ impl<TRMWFS: TruncatingRecvMsgWithFullSize + Unpin + ?Sized> Future
                     }
                     TryRecvResult::Spilled(sz) => {
                         buf.set_fill(0);
-                        buf.is_one_msg = false;
+                        buf.has_msg = false;
                         Poll::Ready(Ok(TryRecvResult::Spilled(sz)))
                     }
                     TryRecvResult::EndOfStream => Poll::Ready(Ok(TryRecvResult::EndOfStream)),

@@ -16,7 +16,7 @@ impl MsgBuf<'_> {
     }
     /// Ensures that the buffer has at least the given capacity, allocating if necessary.
     pub fn ensure_capacity(&mut self, cap: usize) -> Result<(), QuotaExceeded> {
-        #[rustfmt::skip] let Self { cap: old_cap, quota, is_one_msg, .. } = *self;
+        #[rustfmt::skip] let Self { cap: old_cap, quota, has_msg: is_one_msg, .. } = *self;
         let cap = max(cap, size_of::<MsgBuf>());
         if old_cap >= cap {
             return Ok(());
@@ -45,7 +45,7 @@ impl MsgBuf<'_> {
         };
         *self = Self::from(vec);
         self.quota = quota;
-        self.is_one_msg = is_one_msg;
+        self.has_msg = is_one_msg;
         Ok(())
     }
 }

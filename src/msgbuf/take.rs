@@ -42,6 +42,6 @@ impl<'buf> MsgBuf<'buf> {
     }
 
     fn clear(&mut self) {
-        (self.init, self.fill, self.cap, self.is_one_msg) = (0, 0, 0, false);
+        (self.init, self.fill, self.cap, self.has_msg) = (0, 0, 0, false);
     }
 }

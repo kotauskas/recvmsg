@@ -23,7 +23,7 @@ pub unsafe fn recv_trunc_recvmsg_with_msghdr(
     flags: i32,
 ) -> io::Result<(Option<bool>, usize)> {
     buf.set_fill(0);
-    buf.is_one_msg = false;
+    buf.has_msg = false;
 
     let out = &mut buf[..];
     let mut iov = iovec { iov_base: out.as_mut_ptr().cast(), iov_len: out.len() };
@@ -47,7 +47,7 @@ pub unsafe fn recv_trunc_recvmsg_with_msghdr(
 
     Ok((
         if bytes_recved > 0 {
-            buf.is_one_msg = true;
+            buf.has_msg = true;
             let fit = hdr.msg_flags & MSG_TRUNC == 0;
             Some(fit)
         } else {

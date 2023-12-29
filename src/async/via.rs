@@ -54,7 +54,7 @@ pub fn poll_recv_via_poll_recv_trunc<ATRM: TruncatingRecvMsg + ?Sized>(
             Ok(None) => return Ok(RecvResult::EndOfStream).into(),
             Err(e) => {
                 buf.set_fill(0);
-                buf.is_one_msg = false;
+                buf.has_msg = false;
                 return Err(e).into();
             }
         };

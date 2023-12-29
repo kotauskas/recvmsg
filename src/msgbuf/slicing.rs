@@ -56,11 +56,10 @@ impl DerefMut for MsgBuf<'_> {
 /// Safe immutable access.
 impl MsgBuf<'_> {
     /// Returns the most recently received message, or an empty slice if no message has been
-    /// received yet or if the buffer was just used for bulk reception.
-    // TODO link bulk reception
+    /// received yet.
     #[inline]
-    pub fn most_recent_msg(&self) -> Option<&[u8]> {
-        if self.is_one_msg {
+    pub fn msg(&self) -> Option<&[u8]> {
+        if self.has_msg {
             Some(self.filled_part())
         } else {
             None

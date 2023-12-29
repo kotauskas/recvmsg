@@ -18,7 +18,7 @@ impl From<Vec<u8>> for MsgBuf<'_> {
             init: vec.len(),
             fill: vec.len(),
             borrow: None,
-            is_one_msg: !vec.is_empty(),
+            has_msg: !vec.is_empty(),
         }
     }
 }
@@ -33,7 +33,7 @@ impl<'buf> From<&'buf mut [MaybeUninit<u8>]> for MsgBuf<'buf> {
             init: 0,
             fill: 0,
             borrow: Some(PhantomData),
-            is_one_msg: false,
+            has_msg: false,
         }
     }
 }
@@ -47,7 +47,7 @@ impl From<Box<[MaybeUninit<u8>]>> for MsgBuf<'_> {
             init: 0,
             fill: 0,
             borrow: None,
-            is_one_msg: false,
+            has_msg: false,
         }
     }
 }
@@ -63,7 +63,7 @@ impl<'buf> From<&'buf mut [u8]> for MsgBuf<'buf> {
             init: borrowed.len(),
             fill: borrowed.len(),
             borrow: Some(PhantomData),
-            is_one_msg: !borrowed.is_empty(),
+            has_msg: !borrowed.is_empty(),
         }
     }
 }
@@ -78,7 +78,7 @@ impl From<Box<[u8]>> for MsgBuf<'_> {
             init: bx.len(),
             fill: bx.len(),
             borrow: None,
-            is_one_msg: !bx.is_empty(),
+            has_msg: !bx.is_empty(),
         }
     }
 }

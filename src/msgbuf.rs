@@ -109,8 +109,9 @@ pub struct MsgBuf<'buf> {
     /// a factor of two from the quota, which is modelled after `Vec`'s actual exponential growth
     /// behavior and thus should prevent overshoots in all but the most exceptional of situations.
     pub quota: Option<NonZeroUsize>,
-    /// Whether the well-initialized part of the buffer constitutes exactly one message.
-    pub is_one_msg: bool,
+    /// Whether the buffer has already been used to receive a message. Set to `false` to
+    /// semantically invalidate the stored data.
+    pub has_msg: bool,
 }
 impl UnwindSafe for MsgBuf<'_> {} // Who else remembers that this trait is a thing?
 impl Default for MsgBuf<'_> {
@@ -123,7 +124,7 @@ impl Default for MsgBuf<'_> {
             init: 0,
             fill: 0,
             borrow: None,
-            is_one_msg: false,
+            has_msg: false,
         }
     }
 }
@@ -161,8 +162,8 @@ impl MsgBuf<'_> {
     #[rustfmt::skip] // FUCK off
     pub fn make_owned(self) -> MsgBuf<'static> {
         if self.borrow.is_none() {
-            let MsgBuf { ptr, cap, quota, init, fill: len, borrow: _, is_one_msg } = self;
-            MsgBuf { ptr, cap, quota, init, fill: len, borrow: None, is_one_msg }
+            let MsgBuf { ptr, cap, quota, init, fill: len, borrow: _, has_msg: is_one_msg } = self;
+            MsgBuf { ptr, cap, quota, init, fill: len, borrow: None, has_msg: is_one_msg }
         } else {
             MsgBuf::from(Vec::with_capacity(self.cap))
         }
@@ -171,8 +172,8 @@ impl MsgBuf<'_> {
     #[rustfmt::skip]
     pub fn try_extend_lifetime(self) -> Result<MsgBuf<'static>, Self> {
         if self.borrow.is_none() || self.cap == 0 {
-            let MsgBuf { ptr, cap, quota, init, fill: len, borrow: _, is_one_msg } = self;
-            Ok(MsgBuf { ptr, cap, quota, init, fill: len, borrow: None, is_one_msg })
+            let MsgBuf { ptr, cap, quota, init, fill: len, borrow: _, has_msg: is_one_msg } = self;
+            Ok(MsgBuf { ptr, cap, quota, init, fill: len, borrow: None, has_msg: is_one_msg })
         } else {
             Err(self)
         }
