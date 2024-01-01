@@ -1,4 +1,4 @@
-use super::{MsgBuf, MuU8};
+use crate::msgbuf::{MsgBuf, MuU8};
 
 /// Cursors of the buffer.
 impl MsgBuf<'_> {

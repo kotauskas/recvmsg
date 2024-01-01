@@ -9,12 +9,12 @@ impl<'buf> MsgBuf<'buf> {
     /// borrowed and owned.)
     #[inline]
     pub fn take_owned(&mut self) -> Option<Vec<u8>> {
-        #[rustfmt::skip] let Self { ptr, cap, fill, borrow, .. } = *self;
+        let Self { ptr, cap, init, borrow, .. } = *self;
         if borrow.is_some() && cap > 0 {
             return None;
         }
-        self.clear();
-        Some(unsafe { Vec::from_raw_parts(ptr.as_ptr(), fill, cap) })
+        self.put_vec(Vec::new());
+        Some(unsafe { Vec::from_raw_parts(ptr.as_ptr(), init, cap) })
     }
 
     /// Takes the slice and returns it with its original lifetime (regardless of what lifetime
@@ -23,11 +23,10 @@ impl<'buf> MsgBuf<'buf> {
     #[inline]
     pub fn take_borrowed(&mut self) -> Option<&'buf mut [MaybeUninit<u8>]> {
         let Self { ptr, cap, borrow, .. } = *self;
-        #[allow(clippy::question_mark)]
         if borrow.is_none() && cap > 0 {
             return None;
         };
-        self.clear();
+        self.put_vec(Vec::new());
         // SAFETY: `self` at this point is empty, and the slice we're getting here is a direct
         // descendant (reborrow) of that slice, which means that this is the only instance of that
         // slice in existence at this level in the borrow stack (I *think* that's how this sort of
@@ -39,9 +38,5 @@ impl<'buf> MsgBuf<'buf> {
         // function is based on). I haven't tried using the `polonius_the_crab` crate because that's
         // a whole extra dependency, but it should be doable with that crate if need be.
         Some(unsafe { slice::from_raw_parts_mut(ptr.as_ptr().cast::<MuU8>(), cap) })
-    }
-
-    fn clear(&mut self) {
-        (self.init, self.fill, self.cap, self.has_msg) = (0, 0, 0, false);
     }
 }

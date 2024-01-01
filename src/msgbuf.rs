@@ -1,23 +1,19 @@
 #![allow(unsafe_code)]
 
 mod cap;
-pub use cap::QuotaExceeded;
-mod conv;
+mod ctor;
 mod cursors;
+mod lifetime;
+mod quota_err;
+mod safe_write;
 mod slicing;
 mod take;
 #[cfg(test)]
 mod tests;
 
-use alloc::vec::Vec;
-use core::{
-    cmp::max,
-    marker::PhantomData,
-    mem::{transmute, MaybeUninit},
-    num::NonZeroUsize,
-    panic::UnwindSafe,
-    ptr::NonNull,
-};
+pub use quota_err::*;
+
+use core::{marker::PhantomData, mem::MaybeUninit, panic::UnwindSafe, ptr::NonNull};
 
 type MuU8 = MaybeUninit<u8>;
 
@@ -86,20 +82,22 @@ type MuU8 = MaybeUninit<u8>;
 /// assert!(buf.is_one_msg);
 /// ```
 #[derive(Debug)]
-pub struct MsgBuf<'buf> {
+pub struct MsgBuf<'slice> {
     ptr: NonNull<u8>,
     // All cursors count from `ptr`, not from each other.
     /// How much is allocated.
     cap: usize,
-    /// How much is initialized. Numerically equal to the starting index of writes. May not exceed
-    /// `cap`.
+    /// How much is initialized. May not exceed `cap`.
     init: usize,
+    /// Designates whether the buffer is borrowed or owned. `Option` is completely decorative and
+    /// acts as a fancy boolean here.
+    borrow: Option<PhantomData<&'slice mut [MuU8]>>,
     /// The length of the logically filled part of the buffer. Usually equal to the length of the
     /// last received message. May not exceed `init`.
     fill: usize,
-    /// Designates whether the buffer is borrowed or owned. `Option` is completely decorative and
-    /// acts as a fancy boolean here.
-    borrow: Option<PhantomData<&'buf mut [MuU8]>>,
+    /// Whether the buffer has already been used to receive a message. Set to `false` to
+    /// semantically invalidate the stored data.
+    pub has_msg: bool,
     /// Highest allowed capacity for growth operations. This will only take effect on the next
     /// memory allocation.
     ///
@@ -108,26 +106,12 @@ pub struct MsgBuf<'buf> {
     /// [`Vec::reserve_exact()`] instead of [`Vec::reserve()`] when the requested capacity is within
     /// a factor of two from the quota, which is modelled after `Vec`'s actual exponential growth
     /// behavior and thus should prevent overshoots in all but the most exceptional of situations.
-    pub quota: Option<NonZeroUsize>,
-    /// Whether the buffer has already been used to receive a message. Set to `false` to
-    /// semantically invalidate the stored data.
-    pub has_msg: bool,
+    ///
+    /// A `Some(0)` quota prevents allocation altogether.
+    // TODO ensure that
+    pub quota: Option<usize>,
 }
 impl UnwindSafe for MsgBuf<'_> {} // Who else remembers that this trait is a thing?
-impl Default for MsgBuf<'_> {
-    #[inline]
-    fn default() -> Self {
-        Self {
-            ptr: NonNull::dangling(),
-            cap: 0,
-            quota: None,
-            init: 0,
-            fill: 0,
-            borrow: None,
-            has_msg: false,
-        }
-    }
-}
 
 impl Drop for MsgBuf<'_> {
     fn drop(&mut self) {
@@ -135,47 +119,16 @@ impl Drop for MsgBuf<'_> {
     }
 }
 
-fn relax_init_slice(slice: &[u8]) -> &[MuU8] {
-    unsafe { transmute(slice) }
-}
-
-/// Writing from safe code.
+/// Base pointer getters.
 impl MsgBuf<'_> {
-    /// Appends the given slice to the end of the filled part, allocating if necessary.
-    pub fn extend_from_slice(&mut self, slice: &[u8]) -> Result<(), QuotaExceeded> {
-        let extra = slice.len();
-        let new_len = self.fill + extra;
-        self.ensure_capacity(new_len)?;
-        self.unfilled_part()[..extra].copy_from_slice(relax_init_slice(slice));
-        // The slice might be smaller than the unfilled-but-initialized part, in which case passing
-        // `new_len` would inexplicably move the initialization cursor back.
-        unsafe { self.set_init(max(new_len, self.init)) };
-        self.set_fill(new_len);
-        Ok(())
+    /// Returns the base of the buffer as a const-pointer.
+    #[inline(always)]
+    pub fn as_ptr(&self) -> *const u8 {
+        self.ptr.as_ptr()
     }
-}
-
-/// Lifetime management.
-impl MsgBuf<'_> {
-    /// Makes sure `self` is owned by making a new allocation equal in size to the borrowed
-    /// capacity if it is borrowed.
-    #[rustfmt::skip] // FUCK off
-    pub fn make_owned(self) -> MsgBuf<'static> {
-        if self.borrow.is_none() {
-            let MsgBuf { ptr, cap, quota, init, fill: len, borrow: _, has_msg: is_one_msg } = self;
-            MsgBuf { ptr, cap, quota, init, fill: len, borrow: None, has_msg: is_one_msg }
-        } else {
-            MsgBuf::from(Vec::with_capacity(self.cap))
-        }
-    }
-    /// Attempts to extend lifetime to `'static`, failing if the buffer is borrowed.
-    #[rustfmt::skip]
-    pub fn try_extend_lifetime(self) -> Result<MsgBuf<'static>, Self> {
-        if self.borrow.is_none() || self.cap == 0 {
-            let MsgBuf { ptr, cap, quota, init, fill: len, borrow: _, has_msg: is_one_msg } = self;
-            Ok(MsgBuf { ptr, cap, quota, init, fill: len, borrow: None, has_msg: is_one_msg })
-        } else {
-            Err(self)
-        }
+    /// Returns the base of the buffer as a pointer.
+    #[inline(always)]
+    pub fn as_mut_ptr(&mut self) -> *mut u8 {
+        self.ptr.as_ptr()
     }
 }

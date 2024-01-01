@@ -1,5 +1,5 @@
 use super::MsgBuf;
-use core::{mem::MaybeUninit, num::NonZeroUsize};
+use core::mem::MaybeUninit;
 
 #[test]
 fn ensure_capacity() {
@@ -16,9 +16,9 @@ fn ensure_capacity() {
     buf.ensure_capacity(33).unwrap();
     assert!(buf.capacity() >= 33);
 
-    buf.quota = NonZeroUsize::new(32);
+    buf.quota = Some(32);
     assert!(buf.ensure_capacity(64).is_err());
-    buf.quota = NonZeroUsize::new(64);
+    buf.quota = Some(64);
     buf.ensure_capacity(64).unwrap();
     assert!(buf.capacity() >= 64);
 }

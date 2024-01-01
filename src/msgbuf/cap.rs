@@ -1,11 +1,8 @@
-use super::MsgBuf;
+use super::{super::QuotaExceeded, MsgBuf};
 use alloc::vec::Vec;
-use core::{
-    cmp::max,
-    fmt::{self, Display, Formatter},
-    mem::size_of,
-    num::NonZeroUsize,
-};
+use core::{cmp::max, mem::size_of, num::NonZeroUsize};
+
+// TODO amortize manually
 
 /// Capacity and reallocation.
 impl MsgBuf<'_> {
@@ -16,57 +13,33 @@ impl MsgBuf<'_> {
     }
     /// Ensures that the buffer has at least the given capacity, allocating if necessary.
     pub fn ensure_capacity(&mut self, cap: usize) -> Result<(), QuotaExceeded> {
-        #[rustfmt::skip] let Self { cap: old_cap, quota, has_msg: is_one_msg, .. } = *self;
-        let cap = max(cap, size_of::<MsgBuf>());
-        if old_cap >= cap {
+        let Self { cap: old_cap, quota, .. } = *self;
+        let new_cap = max(cap, size_of::<MsgBuf>());
+        if old_cap >= new_cap {
             return Ok(());
         }
         if let Some(quota) = quota {
-            if cap > quota.get() {
+            if new_cap > quota {
                 return Err(QuotaExceeded {
                     quota,
-                    attempted_alloc: NonZeroUsize::new(cap).unwrap(),
+                    attempted_alloc: NonZeroUsize::new(new_cap).unwrap(),
                 });
             }
         }
-        self.init = self.fill; // Avoids unnecessary copying of unfilled but initialized data
+        self.init = 0; // Avoids unnecessary copying
+        self.fill = 0;
         let vec = if let Some(mut vec) = self.take_owned() {
             // Assumes `Vec`'s only heuristic is exponential growth, averting it if on track to
             // exceed the quota.
-            let exp_would_overshoot = quota.map(|quota| cap * 2 > quota.get()).unwrap_or(false);
+            let exp_would_overshoot = quota.map(|quota| new_cap * 2 > quota).unwrap_or(false);
             let op = if exp_would_overshoot { Vec::reserve_exact } else { Vec::reserve };
-            let incr = cap - vec.len();
+            let incr = new_cap - vec.len();
             op(&mut vec, incr);
             vec
         } else {
-            let mut vec = Vec::with_capacity(cap);
-            vec.extend_from_slice(self.filled_part());
-            vec
+            Vec::with_capacity(new_cap)
         };
-        *self = Self::from(vec);
-        self.quota = quota;
-        self.has_msg = is_one_msg;
+        self.put_vec(vec);
         Ok(())
     }
 }
-
-/// Error indicating that a buffer's memory allocation quota was exceeded during an operation that
-/// had to perform a memory allocation.
-#[derive(Copy, Clone, Debug)]
-pub struct QuotaExceeded {
-    /// The quota the buffer had at the time of the error.
-    pub quota: NonZeroUsize,
-    /// The size which the buffer was to attain.
-    pub attempted_alloc: NonZeroUsize,
-}
-impl Display for QuotaExceeded {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        #[rustfmt::skip] let Self { quota, attempted_alloc } = self;
-        write!(
-            f,
-            "quota of {quota} bytes exceeded by an attempted buffer reallocation to {attempted_alloc} bytes"
-        )
-    }
-}
-#[cfg(feature = "std")]
-impl std::error::Error for QuotaExceeded {}

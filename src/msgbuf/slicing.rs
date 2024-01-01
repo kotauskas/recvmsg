@@ -5,28 +5,6 @@ use core::{
     slice,
 };
 
-/// Pointer arithmetic.
-impl MsgBuf<'_> {
-    fn base_uninit(&self) -> *const MuU8 {
-        self.ptr.as_ptr().cast_const().cast()
-    }
-    fn base_uninit_mut(&mut self) -> *mut MuU8 {
-        self.ptr.as_ptr().cast()
-    }
-    fn unfilled_start_mut(&mut self) -> *mut MuU8 {
-        unsafe {
-            // SAFETY: filled <= cap
-            self.base_uninit_mut().add(self.fill)
-        }
-    }
-    fn uninit_start_mut(&mut self) -> *mut MuU8 {
-        unsafe {
-            // SAFETY: init <= cap
-            self.base_uninit_mut().add(self.init)
-        }
-    }
-}
-
 unsafe fn assume_init_slice(slice: &[MuU8]) -> &[u8] {
     unsafe { transmute(slice) }
 }
@@ -42,14 +20,14 @@ impl Deref for MsgBuf<'_> {
     type Target = [MuU8];
     #[inline]
     fn deref(&self) -> &[MuU8] {
-        unsafe { slice::from_raw_parts(self.base_uninit(), self.cap) }
+        unsafe { slice::from_raw_parts(self.as_ptr().cast(), self.capacity()) }
     }
 }
 /// Borrows the whole buffer.
 impl DerefMut for MsgBuf<'_> {
     #[inline]
     fn deref_mut(&mut self) -> &mut [MuU8] {
-        unsafe { slice::from_raw_parts_mut(self.base_uninit_mut(), self.cap) }
+        unsafe { slice::from_raw_parts_mut(self.as_mut_ptr().cast(), self.capacity()) }
     }
 }
 
@@ -68,7 +46,7 @@ impl MsgBuf<'_> {
 }
 
 /// Parts, slicing and splitting.
-impl MsgBuf<'_> {
+impl<'slice> MsgBuf<'slice> {
     /// Borrows the filled part of the buffer.
     #[inline]
     pub fn filled_part(&self) -> &[u8] {
@@ -84,12 +62,8 @@ impl MsgBuf<'_> {
     /// Mutably borrows the part of the buffer which is initialized but unfilled.
     #[inline]
     pub fn init_but_unfilled_part_mut(&mut self) -> &mut [u8] {
-        unsafe {
-            slice::from_raw_parts_mut(
-                self.unfilled_start_mut().cast(),
-                self.len_init_but_unfilled(),
-            )
-        }
+        let (init, fill) = (self.init, self.fill);
+        unsafe { assume_init_slice_mut(&mut self[fill..init]) }
     }
 
     /// Borrows the initialized (but potentially partially unfilled) part of the buffer.
@@ -104,40 +78,20 @@ impl MsgBuf<'_> {
         unsafe { assume_init_slice_mut(&mut self[..init]) }
     }
 
-    /// Splits the buffer into an initialized part and another `MsgBuf` that borrows from `self`.
-    ///
-    /// This is a bit of a low-level method, since it does not deal with message boundaries.
-    #[inline]
-    pub fn split_at_init(&mut self) -> (&[u8], MsgBuf<'_>) {
-        let rh = unsafe { slice::from_raw_parts_mut(self.uninit_start_mut(), self.len_uninit()) };
-        (self.init_part(), rh.into())
-    }
-
-    /// Splits the buffer into a filled part and another `MsgBuf` that borrows from `self`.
-    #[inline]
-    pub fn split_at_fill(&mut self) -> (&[u8], MsgBuf<'_>) {
-        let mut rh: MsgBuf<'_> =
-            unsafe { slice::from_raw_parts_mut(self.unfilled_start_mut(), self.len_unfilled()) }
-                .into();
-        unsafe {
-            // SAFETY: this is the well-initialized but unfilled part.
-            rh.set_init(self.len_init_but_unfilled());
-        }
-        (self.filled_part(), rh)
-    }
-
     /// Borrows the uninitialized part of the buffer.
     ///
     /// If you need this to be a buffer object, use `.split_at_init().1`.
     #[inline]
     pub fn uninit_part(&mut self) -> &mut [MuU8] {
-        unsafe { slice::from_raw_parts_mut(self.uninit_start_mut(), self.len_uninit()) }
+        let init = self.init;
+        &mut self[init..]
     }
     /// Borrows the unfilled part of the buffer.
     ///
     /// If you need this to be a buffer object, use `.split_at_fill().1`.
     #[inline]
     pub fn unfilled_part(&mut self) -> &mut [MuU8] {
-        unsafe { slice::from_raw_parts_mut(self.unfilled_start_mut(), self.len_unfilled()) }
+        let fill = self.fill;
+        &mut self[fill..]
     }
 }
