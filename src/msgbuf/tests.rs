@@ -7,20 +7,26 @@ fn ensure_capacity() {
     let mut buf = MsgBuf::from(bufbak.as_mut());
     buf.ensure_capacity(2).unwrap();
     assert!(buf.capacity() >= 2);
-    buf.ensure_capacity(9).unwrap();
-    assert!(buf.capacity() >= 9);
+    buf.ensure_capacity(309).unwrap();
+    assert!(buf.capacity() >= 309);
 
-    buf = MsgBuf::from(alloc::vec::Vec::with_capacity(15));
-    buf.ensure_capacity(32).unwrap();
-    assert!(buf.capacity() >= 32);
-    buf.ensure_capacity(33).unwrap();
-    assert!(buf.capacity() >= 33);
+    buf = MsgBuf::from(alloc::vec::Vec::with_capacity(305));
+    buf.ensure_capacity(512).unwrap();
+    assert!(buf.capacity() >= 512);
+    buf.ensure_capacity(1025).unwrap();
+    assert!(buf.capacity() >= 1025);
 
-    buf.quota = Some(32);
-    assert!(buf.ensure_capacity(64).is_err());
-    buf.quota = Some(64);
-    buf.ensure_capacity(64).unwrap();
-    assert!(buf.capacity() >= 64);
+    buf.quota = Some(256);
+    assert!(buf.ensure_capacity(4096).is_err());
+    assert!(buf.capacity() >= 1025);
+    buf.quota = Some(4096);
+    buf.ensure_capacity(4096).unwrap();
+    assert!(buf.capacity() >= 4096);
+
+    buf = MsgBuf::from(bufbak.as_mut());
+    buf.quota = Some(0);
+    assert!(buf.ensure_capacity(1).is_ok());
+    assert!(buf.ensure_capacity(2).is_err());
 }
 
 #[test]
