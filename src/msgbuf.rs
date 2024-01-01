@@ -107,7 +107,6 @@ pub struct MsgBuf<'slice> {
     /// behavior and thus should prevent overshoots in all but the most exceptional of situations.
     ///
     /// A `Some(0)` quota prevents allocation altogether.
-    // TODO ensure that
     pub quota: Option<usize>,
 }
 impl UnwindSafe for MsgBuf<'_> {} // Who else remembers that this trait is a thing?
