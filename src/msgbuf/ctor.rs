@@ -26,6 +26,7 @@ impl<'slice> MsgBuf<'slice> {
     pub(super) fn put_vec(&mut self, vec: Vec<u8>) {
         let mut vec = ManuallyDrop::new(vec);
         self.ptr = NonNull::new(vec.as_mut_ptr()).unwrap_or(NonNull::dangling());
+        self.cap = vec.capacity();
         self.borrow = None;
         self.init = vec.len();
         self.fill = 0;
@@ -38,8 +39,9 @@ impl<'slice> MsgBuf<'slice> {
     /// Forgets old buffer in place, if there was one, and replaces it with the given `slice`.
     fn put_slice(&mut self, slice: &'slice mut [MuU8]) {
         self.ptr = NonNull::new(slice.as_mut_ptr().cast()).unwrap_or(NonNull::dangling());
+        self.cap = slice.len();
         self.borrow = Some(PhantomData);
-        self.init = slice.len();
+        self.init = 0;
         self.fill = 0;
     }
     #[inline]

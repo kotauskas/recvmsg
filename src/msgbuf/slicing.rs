@@ -20,14 +20,14 @@ impl Deref for MsgBuf<'_> {
     type Target = [MuU8];
     #[inline]
     fn deref(&self) -> &[MuU8] {
-        unsafe { slice::from_raw_parts(self.as_ptr().cast(), self.capacity()) }
+        unsafe { slice::from_raw_parts(self.as_ptr().cast(), self.cap) }
     }
 }
 /// Borrows the whole buffer.
 impl DerefMut for MsgBuf<'_> {
     #[inline]
     fn deref_mut(&mut self) -> &mut [MuU8] {
-        unsafe { slice::from_raw_parts_mut(self.as_mut_ptr().cast(), self.capacity()) }
+        unsafe { slice::from_raw_parts_mut(self.as_mut_ptr().cast(), self.cap) }
     }
 }
 
@@ -37,11 +37,7 @@ impl MsgBuf<'_> {
     /// received yet.
     #[inline]
     pub fn msg(&self) -> Option<&[u8]> {
-        if self.has_msg {
-            Some(self.filled_part())
-        } else {
-            None
-        }
+        self.has_msg.then(|| self.filled_part())
     }
 }
 
