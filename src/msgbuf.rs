@@ -28,18 +28,17 @@ type MuU8 = MaybeUninit<u8>;
 /// assert_eq!(buf.capacity(), 32);
 /// assert_eq!(buf.init_part().len(), 0); // Assumes nothing about the buffer.
 /// assert_eq!(buf.filled_part().len(), 0);
-/// assert!(!buf.is_one_msg); // No message is contained.
+/// assert!(!buf.has_msg); // No message is contained.
 ///
-/// // A fully initialized and filled buffer:
+/// // A fully initialized buffer:
 /// let mut arr = [0; 32];
 /// let buf = MsgBuf::from(arr.as_mut());
 /// assert_eq!(buf.capacity(), 32);
 /// // Whole buffer can be passed to methods that take &mut [u8]:
 /// assert_eq!(buf.init_part().len(), 32);
-/// // Whole buffer is assumed to be filled (this
-/// // does not interfere with subsequent reception):
-/// assert_eq!(buf.filled_part().len(), 32);
-/// assert!(buf.is_one_msg); // Assumed to already contain a single received message.
+/// // Whole buffer is not assumed to be filled:
+/// assert_eq!(buf.filled_part().len(), 0);
+/// assert!(!buf.has_msg); // Not assumed to already contain a single received message.
 /// ```
 ///
 /// Or one on the heap via [`Box`]:
@@ -51,14 +50,14 @@ type MuU8 = MaybeUninit<u8>;
 /// assert_eq!(buf.capacity(), 32);
 /// assert_eq!(buf.len_init(), 0);
 /// assert_eq!(buf.len_filled(), 0);
-/// assert!(!buf.is_one_msg);
+/// assert!(!buf.has_msg);
 ///
-/// // A fully initialized and filled buffer:
+/// // A fully initialized buffer:
 /// let buf = MsgBuf::from(Box::<[u8]>::from([0; 32]));
 /// assert_eq!(buf.capacity(), 32);
 /// assert_eq!(buf.len_init(), 32);
-/// assert_eq!(buf.len_filled(), 32);
-/// assert!(buf.is_one_msg);
+/// assert_eq!(buf.len_filled(), 0);
+/// assert!(!buf.has_msg);
 /// ```
 ///
 /// Or in a `Vec`:
@@ -70,7 +69,7 @@ type MuU8 = MaybeUninit<u8>;
 /// assert_eq!(buf.capacity(), 31);
 /// assert_eq!(buf.len_init(), 0);
 /// assert_eq!(buf.len_filled(), 0);
-/// assert!(!buf.is_one_msg);
+/// assert!(!buf.has_msg);
 ///
 /// // A partially initialized buffer:
 /// let mut vec = Vec::with_capacity(32);
@@ -78,8 +77,8 @@ type MuU8 = MaybeUninit<u8>;
 /// let buf = MsgBuf::from(vec);
 /// assert_eq!(buf.capacity(), 32);
 /// assert_eq!(buf.len_init(), 6);
-/// assert_eq!(buf.len_filled(), 6);
-/// assert!(buf.is_one_msg);
+/// assert_eq!(buf.len_filled(), 0);
+/// assert!(!buf.has_msg);
 /// ```
 #[derive(Debug)]
 pub struct MsgBuf<'slice> {

@@ -68,10 +68,7 @@ impl<'buf> From<&'buf mut [MaybeUninit<u8>]> for MsgBuf<'buf> {
 impl From<Box<[MaybeUninit<u8>]>> for MsgBuf<'_> {
     fn from(bx: Box<[MaybeUninit<u8>]>) -> Self {
         let mut muvec = ManuallyDrop::new(Vec::from(bx));
-        unsafe {
-            Vec::from_raw_parts(muvec.as_mut_ptr().cast::<u8>(), muvec.len(), muvec.capacity())
-        }
-        .into()
+        unsafe { Vec::from_raw_parts(muvec.as_mut_ptr().cast::<u8>(), 0, muvec.capacity()) }.into()
     }
 }
 
@@ -80,7 +77,9 @@ impl<'buf> From<&'buf mut [u8]> for MsgBuf<'buf> {
     #[inline]
     fn from(borrowed: &'buf mut [u8]) -> Self {
         let (base, len) = (borrowed.as_mut_ptr(), borrowed.len());
-        unsafe { slice::from_raw_parts_mut(base.cast::<MuU8>(), len) }.into()
+        let mut slf: Self = unsafe { slice::from_raw_parts_mut(base.cast::<MuU8>(), len) }.into();
+        unsafe { slf.set_init(slf.cap) };
+        slf
     }
 }
 /// Sets `init` = `bx.len()`.
