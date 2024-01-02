@@ -9,6 +9,7 @@
 mod cap;
 mod ctor;
 mod cursors;
+mod impl_debug;
 mod lifetime;
 mod owned;
 mod quota_err;
@@ -88,7 +89,6 @@ type MuU8 = MaybeUninit<u8>;
 /// assert_eq!(buf.len_filled(), 0);
 /// assert!(!buf.has_msg);
 /// ```
-#[derive(Debug)]
 pub struct MsgBuf<'slice, Owned: OwnedBuf = Vec<u8>> {
     // TODO comment out to ensure completeness of implementations
     ptr: NonNull<u8>,
