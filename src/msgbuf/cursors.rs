@@ -1,7 +1,7 @@
-use crate::msgbuf::{MsgBuf, MuU8};
+use super::{owned::OwnedBuf, MsgBuf, MuU8};
 
 /// Cursors of the buffer.
-impl MsgBuf<'_> {
+impl<Owned: OwnedBuf> MsgBuf<'_, Owned> {
     /// Returns the length of the filled part, which is numerically equal to the offset from the
     /// *base* pointer at which the unfilled part starts.
     #[inline(always)]

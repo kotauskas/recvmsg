@@ -1,4 +1,4 @@
-use super::{MsgBuf, MuU8, QuotaExceeded};
+use super::{MsgBuf, MuU8, OwnedBuf, QuotaExceeded};
 use core::cmp::max;
 
 fn relax_init_slice(slice: &[u8]) -> &[MuU8] {
@@ -6,7 +6,7 @@ fn relax_init_slice(slice: &[u8]) -> &[MuU8] {
 }
 
 /// Writing from safe code.
-impl MsgBuf<'_> {
+impl<Owned: OwnedBuf> MsgBuf<'_, Owned> {
     /// Appends the given slice to the end of the filled part, allocating if necessary.
     pub fn extend_from_slice(&mut self, slice: &[u8]) -> Result<(), QuotaExceeded> {
         let extra = slice.len();

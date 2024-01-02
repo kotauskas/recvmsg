@@ -1,5 +1,4 @@
-use super::{super::QuotaExceeded, MsgBuf};
-use alloc::vec::Vec;
+use super::{super::QuotaExceeded, owned::OwnedBuf, MsgBuf};
 use core::{
     cmp::{max, min},
     mem::size_of,
@@ -7,7 +6,7 @@ use core::{
 };
 
 /// Capacity and reallocation.
-impl MsgBuf<'_> {
+impl<Owned: OwnedBuf> MsgBuf<'_, Owned> {
     /// Returns the buffer's total capacity, including the already filled part.
     #[inline(always)]
     pub fn capacity(&self) -> usize {
@@ -38,13 +37,9 @@ impl MsgBuf<'_> {
             };
         self.init = 0; // Avoids unnecessary copying
         self.fill = 0;
-        let vec = if let Some(mut vec) = self.take_owned() {
-            vec.reserve_exact(new_cap_exact);
-            vec
-        } else {
-            Vec::with_capacity(new_cap)
-        };
-        self.put_vec(vec);
+        let mut owned = self.take_owned().unwrap_or_default();
+        owned.grow(new_cap_exact);
+        self.put_owned(owned);
         Ok(())
     }
 }

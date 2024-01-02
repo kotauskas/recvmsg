@@ -32,7 +32,7 @@ fn ensure_capacity() {
 #[test]
 fn extend() {
     let mut bufbak = [MaybeUninit::new(0); 10];
-    let mut buf = MsgBuf::from(bufbak.as_mut());
+    let mut buf = MsgBuf::<'_, Vec<_>>::from(bufbak.as_mut());
     buf.extend_from_slice(&[1; 10]).unwrap();
     assert_eq!(buf.len_filled(), 10);
 }

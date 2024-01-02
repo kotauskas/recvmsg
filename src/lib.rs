@@ -56,6 +56,7 @@ extern crate alloc;
 mod macros;
 
 pub mod r#async; // ya can't stop me
+pub mod msgbuf;
 pub mod sync;
 
 /// OS-specific functionality. Only available when the standard library is enabled.
@@ -67,11 +68,10 @@ pub mod os {
 }
 
 mod empty;
-mod msgbuf;
 
 pub use {
     empty::*,
-    msgbuf::*,
+    msgbuf::{MsgBuf, QuotaExceeded},
     r#async::{
         RecvMsg as AsyncRecvMsg, RecvMsgExt as AsyncRecvMsgExt,
         TruncatingRecvMsg as AsyncTruncatingRecvMsg,

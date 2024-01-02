@@ -1,9 +1,16 @@
+//! Message reception buffers that can either contain a borrowed slice or own a memory allocation,
+//! with customizable growth behavior, including memory quotas.
+//!
+//! See [`MsgBuf`]'s documentation.
 #![allow(unsafe_code)]
+
+// TODO fallible allocation
 
 mod cap;
 mod ctor;
 mod cursors;
 mod lifetime;
+mod owned;
 mod quota_err;
 mod safe_write;
 mod slicing;
@@ -11,13 +18,14 @@ mod take;
 #[cfg(test)]
 mod tests;
 
-pub use quota_err::*;
+pub use {owned::*, quota_err::*};
 
 use core::{marker::PhantomData, mem::MaybeUninit, panic::UnwindSafe, ptr::NonNull};
 
 type MuU8 = MaybeUninit<u8>;
 
-/// A message reception buffer that can either contain a borrowed slice or own a `Vec`.
+/// A message reception buffer that can either contain a borrowed slice or own a memory allocation,
+/// with customizable growth behavior, including memory quotas.
 ///
 /// This type can be created from a buffer that lives on the stack:
 /// ```
@@ -81,7 +89,8 @@ type MuU8 = MaybeUninit<u8>;
 /// assert!(!buf.has_msg);
 /// ```
 #[derive(Debug)]
-pub struct MsgBuf<'slice> {
+pub struct MsgBuf<'slice, Owned: OwnedBuf = Vec<u8>> {
+    // TODO comment out to ensure completeness of implementations
     ptr: NonNull<u8>,
     // All cursors count from `ptr`, not from each other.
     /// How much is allocated.
@@ -91,6 +100,8 @@ pub struct MsgBuf<'slice> {
     /// Designates whether the buffer is borrowed or owned. `Option` is completely decorative and
     /// acts as a fancy boolean here.
     borrow: Option<PhantomData<&'slice mut [MuU8]>>,
+    /// Don't need two fancy booleans.
+    own: PhantomData<Owned>,
     /// The length of the logically filled part of the buffer. Usually equal to the length of the
     /// last received message. May not exceed `init`.
     fill: usize,
@@ -109,16 +120,20 @@ pub struct MsgBuf<'slice> {
     /// A `Some(0)` quota prevents allocation altogether.
     pub quota: Option<usize>,
 }
-impl UnwindSafe for MsgBuf<'_> {} // Who else remembers that this trait is a thing?
+// Who else remembers that this trait is a thing?
+impl<Owned: OwnedBuf + UnwindSafe> UnwindSafe for MsgBuf<'_, Owned> {}
 
-impl Drop for MsgBuf<'_> {
+unsafe impl<Owned: OwnedBuf + Send> Send for MsgBuf<'_, Owned> {}
+unsafe impl<Owned: OwnedBuf + Sync> Sync for MsgBuf<'_, Owned> {}
+
+impl<Owned: OwnedBuf> Drop for MsgBuf<'_, Owned> {
     fn drop(&mut self) {
         self.take_owned(); // If owned, returns `Some(vec)`, which is then dropped.
     }
 }
 
 /// Base pointer getters.
-impl MsgBuf<'_> {
+impl<Owned: OwnedBuf> MsgBuf<'_, Owned> {
     /// Returns the base of the buffer as a const-pointer.
     #[inline(always)]
     pub fn as_ptr(&self) -> *const u8 {
