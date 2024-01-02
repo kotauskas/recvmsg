@@ -33,7 +33,7 @@ type MuU8 = MaybeUninit<u8>;
 /// # use {core::mem::MaybeUninit, recvmsg::MsgBuf};
 /// // An uninitialized buffer:
 /// let mut arr = [MaybeUninit::new(0); 32];
-/// let buf = MsgBuf::from(arr.as_mut());
+/// let buf = MsgBuf::<()>::from(arr.as_mut());
 /// assert_eq!(buf.capacity(), 32);
 /// assert_eq!(buf.init_part().len(), 0); // Assumes nothing about the buffer.
 /// assert_eq!(buf.filled_part().len(), 0);
@@ -41,7 +41,7 @@ type MuU8 = MaybeUninit<u8>;
 ///
 /// // A fully initialized buffer:
 /// let mut arr = [0; 32];
-/// let buf = MsgBuf::from(arr.as_mut());
+/// let buf = MsgBuf::<()>::from(arr.as_mut());
 /// assert_eq!(buf.capacity(), 32);
 /// // Whole buffer can be passed to methods that take &mut [u8]:
 /// assert_eq!(buf.init_part().len(), 32);
