@@ -1,8 +1,8 @@
 #![allow(unsafe_code)]
 
 use crate::MsgBuf;
-use core::cmp::min;
-use libc::{iovec, msghdr, recvmsg, MSG_TRUNC};
+use core::{cmp::min, mem::size_of_val};
+use libc::{iovec, msghdr, recvmsg, sockaddr_storage, MSG_TRUNC};
 use std::{
     io,
     os::fd::{AsRawFd, BorrowedFd},
@@ -20,6 +20,7 @@ pub unsafe fn recv_trunc_recvmsg_with_msghdr(
     fd: BorrowedFd,
     hdr: &mut msghdr,
     buf: &mut MsgBuf<'_>,
+    abuf: Option<&mut sockaddr_storage>,
     flags: i32,
 ) -> io::Result<(Option<bool>, usize)> {
     buf.set_fill(0);
@@ -29,6 +30,11 @@ pub unsafe fn recv_trunc_recvmsg_with_msghdr(
     let mut iov = iovec { iov_base: out.as_mut_ptr().cast(), iov_len: out.len() };
     hdr.msg_iov = &mut iov;
     hdr.msg_iovlen = 1;
+
+    if let Some(abuf) = abuf {
+        hdr.msg_name = (abuf as *mut sockaddr_storage).cast();
+        hdr.msg_namelen = size_of_val(abuf) as _; // Wouldn't make sense for its size to not fit
+    }
 
     let bytes_recved = unsafe {
         // SAFETY: msghdr is zero-initialized except for the validly initialized iovec

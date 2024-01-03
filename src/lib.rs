@@ -47,10 +47,9 @@
 #![warn(missing_docs, unsafe_code)]
 extern crate alloc;
 
-// TODO recvfrom
+// TODO maybe recvfrom should only have the addr be written when there's no truncation
 // TODO vectored
 // TODO async-std
-// TODO mut forwarding
 
 #[macro_use]
 mod macros;

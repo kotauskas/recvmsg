@@ -7,9 +7,10 @@ pub fn recv_trunc_via_recv_trunc_with_full_size<TRMWFS: TruncatingRecvMsgWithFul
     slf: &mut TRMWFS,
     peek: bool,
     buf: &mut MsgBuf<'_>,
+    abuf: Option<&mut TRMWFS::AddrBuf>,
 ) -> Result<Option<bool>, TRMWFS::Error> {
     let cap = buf.len();
-    let rslt = slf.recv_trunc_with_full_size(peek, buf)?;
+    let rslt = slf.recv_trunc_with_full_size(peek, buf, abuf)?;
     debug_assert_eq!(buf.len(), cap, "`recv_trunc_with_size()` changed buffer capacity");
     Ok(match rslt {
         TryRecvResult::Fit(..) => Some(true),
@@ -22,10 +23,11 @@ pub fn recv_trunc_via_recv_trunc_with_full_size<TRMWFS: TruncatingRecvMsgWithFul
 pub fn recv_via_recv_trunc<TRM: TruncatingRecvMsg + ?Sized>(
     slf: &mut TRM,
     buf: &mut MsgBuf<'_>,
+    mut abuf: Option<&mut TRM::AddrBuf>,
 ) -> Result<RecvResult, TRM::Error> {
     let mut fit_first = true;
     loop {
-        let fit = match slf.recv_trunc(true, buf) {
+        let fit = match slf.recv_trunc(true, buf, abuf.as_deref_mut()) {
             Ok(Some(fit)) => fit,
             Ok(None) => return Ok(RecvResult::EndOfStream),
             Err(e) => {
@@ -56,13 +58,14 @@ pub fn recv_via_recv_trunc<TRM: TruncatingRecvMsg + ?Sized>(
 pub fn recv_via_try_recv<TRMWFS: TruncatingRecvMsgWithFullSize + ?Sized>(
     slf: &mut TRMWFS,
     buf: &mut MsgBuf<'_>,
+    mut abuf: Option<&mut TRMWFS::AddrBuf>,
 ) -> Result<RecvResult, TRMWFS::Error> {
-    let ok = match slf.try_recv_msg(buf)?.into() {
+    let ok = match slf.try_recv_msg(buf, abuf.as_deref_mut())?.into() {
         RecvResult::Spilled(sz) => {
             if let Err(qe) = buf.ensure_capacity(sz) {
                 return Ok(RecvResult::QuotaExceeded(qe));
             }
-            let fitsz = match slf.try_recv_msg(buf)? {
+            let fitsz = match slf.try_recv_msg(buf, abuf)? {
                 TryRecvResult::Fit(sz) => sz,
                 TryRecvResult::Spilled(..) => panic_try_recv_retcon(),
                 TryRecvResult::EndOfStream => return Ok(RecvResult::EndOfStream),

@@ -4,39 +4,65 @@ use crate::{
 };
 use core::{
     convert::Infallible,
+    marker::PhantomData,
     pin::Pin,
     task::{Context, Poll},
 };
 
 /// Dummy message stream that is at end-of-stream from the outset.
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct Empty;
-
-impl TruncatingRecvMsg for Empty {
-    type Error = Infallible;
+pub struct Empty<AddrBuf = ()>(PhantomData<fn(&mut AddrBuf)>);
+impl<AddrBuf> Empty<AddrBuf> {
+    /// Creates a dummy message stream.
     #[inline(always)]
-    fn recv_trunc(&mut self, _: bool, _: &mut MsgBuf<'_>) -> Result<Option<bool>, Self::Error> {
+    pub fn new() -> Self {
+        Self(PhantomData)
+    }
+}
+impl<AddrBuf> Default for Empty<AddrBuf> {
+    #[inline(always)]
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl<AddrBuf> TruncatingRecvMsg for Empty<AddrBuf> {
+    type Error = Infallible;
+    type AddrBuf = AddrBuf;
+    #[inline(always)]
+    fn recv_trunc(
+        &mut self,
+        _: bool,
+        _: &mut MsgBuf<'_>,
+        _: Option<&mut AddrBuf>,
+    ) -> Result<Option<bool>, Self::Error> {
         Ok(None)
     }
 }
-impl TruncatingRecvMsgWithFullSize for Empty {
+impl<AddrBuf> TruncatingRecvMsgWithFullSize for Empty<AddrBuf> {
     fn recv_trunc_with_full_size(
         &mut self,
         _: bool,
         _: &mut MsgBuf<'_>,
+        _: Option<&mut AddrBuf>,
     ) -> Result<TryRecvResult, Self::Error> {
         Ok(TryRecvResult::EndOfStream)
     }
 }
-impl RecvMsg for Empty {
+impl<AddrBuf> RecvMsg for Empty<AddrBuf> {
     type Error = Infallible;
+    type AddrBuf = AddrBuf;
     #[inline(always)]
-    fn recv_msg(&mut self, _: &mut MsgBuf<'_>) -> Result<RecvResult, Self::Error> {
+    fn recv_msg(
+        &mut self,
+        _: &mut MsgBuf<'_>,
+        _: Option<&mut AddrBuf>,
+    ) -> Result<RecvResult, Self::Error> {
         Ok(RecvResult::EndOfStream)
     }
 }
 
-impl AsyncTruncatingRecvMsg for Empty {
+impl<AddrBuf> AsyncTruncatingRecvMsg for Empty<AddrBuf> {
     type Error = Infallible;
     #[inline(always)]
     fn poll_recv_trunc(
@@ -48,7 +74,7 @@ impl AsyncTruncatingRecvMsg for Empty {
         Ok(None).into()
     }
 }
-impl AsyncTruncatingRecvMsgWithFullSize for Empty {
+impl<AddrBuf> AsyncTruncatingRecvMsgWithFullSize for Empty<AddrBuf> {
     #[inline(always)]
     fn poll_recv_trunc_with_full_size(
         self: Pin<&mut Self>,
@@ -59,7 +85,7 @@ impl AsyncTruncatingRecvMsgWithFullSize for Empty {
         Ok(TryRecvResult::EndOfStream).into()
     }
 }
-impl AsyncRecvMsg for Empty {
+impl<AddrBuf> AsyncRecvMsg for Empty<AddrBuf> {
     type Error = Infallible;
     #[inline(always)]
     fn poll_recv_msg(
