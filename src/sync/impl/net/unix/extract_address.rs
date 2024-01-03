@@ -1,4 +1,4 @@
-use core::mem::transmute;
+use core::mem::{size_of, transmute};
 use libc::{
     sockaddr_in, sockaddr_in6, sockaddr_storage, sockaddr_un, socklen_t, AF_INET, AF_INET6, AF_UNIX,
 };
@@ -15,10 +15,12 @@ fn from_be_32(i: u32) -> u32 {
     u32::from_be_bytes(i.to_ne_bytes())
 }
 
-pub(crate) fn extract_ip_address(addr: &sockaddr_storage) -> io::Result<InetAddr> {
+pub(crate) fn extract_ip_address(addr: &sockaddr_storage, len: socklen_t) -> io::Result<InetAddr> {
     let paddr = addr as *const sockaddr_storage;
-    match addr.ss_family as _ {
-        AF_INET => {
+    const SIZE4: socklen_t = size_of::<sockaddr_in>() as _;
+    const SIZE6: socklen_t = size_of::<sockaddr_in6>() as _;
+    match (addr.ss_family as _, len) {
+        (AF_INET, SIZE4) => {
             let addr = unsafe { &*paddr.cast::<sockaddr_in>() };
             Ok(SocketAddrV4::new(
                 Ipv4Addr::from(from_be_32(addr.sin_addr.s_addr)),
@@ -26,7 +28,7 @@ pub(crate) fn extract_ip_address(addr: &sockaddr_storage) -> io::Result<InetAddr
             )
             .into())
         }
-        AF_INET6 => {
+        (AF_INET6, SIZE6) => {
             let addr = unsafe { &*paddr.cast::<sockaddr_in6>() };
             Ok(SocketAddrV6::new(
                 Ipv6Addr::from(addr.sin6_addr.s6_addr),

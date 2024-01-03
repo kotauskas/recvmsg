@@ -34,7 +34,7 @@ impl TruncatingRecvMsg for &UdpSocket {
         let mut fused_abuf = (sockaddr_storage(), 0);
         let ret = recv_trunc(self.as_fd(), peek, buf, abuf.is_some().then_some(&mut fused_abuf))?;
         if let Some(abuf) = abuf {
-            *abuf = extract_ip_address(&fused_abuf.0)?;
+            *abuf = extract_ip_address(&fused_abuf.0, fused_abuf.1)?;
         }
         Ok(ret)
     }
@@ -72,7 +72,7 @@ impl crate::TruncatingRecvMsgWithFullSize for &UdpSocket {
             abuf.is_some().then_some(&mut fused_abuf),
         )?;
         if let Some(abuf) = abuf {
-            *abuf = extract_ip_address(&fused_abuf.0)?;
+            *abuf = extract_ip_address(&fused_abuf.0, fused_abuf.1)?;
         }
         Ok(ret)
     }
@@ -104,7 +104,7 @@ impl RecvMsg for &UdpSocket {
         let mut fused_abuf = (sockaddr_storage(), 0);
         let ret = recv_msg(self.as_fd(), buf, abuf.is_some().then_some(&mut fused_abuf))?;
         if let Some(abuf) = abuf {
-            *abuf = extract_ip_address(&fused_abuf.0)?;
+            *abuf = extract_ip_address(&fused_abuf.0, fused_abuf.1)?;
         }
         Ok(ret)
     }
