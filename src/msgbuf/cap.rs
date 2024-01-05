@@ -58,13 +58,18 @@ impl<Owned: OwnedBuf> MsgBuf<'_, Owned> {
                 return Ok(());
             };
         self.init = min(self.init, fill); // Avoids unnecessary copying
+        let is_borrowed = self.borrow.is_some();
         let mut owned = self.take_owned().unwrap_or_default();
-        let borrowed = self.take_borrowed();
+        let borrowed = is_borrowed.then(|| self.take_borrowed()).flatten();
 
         owned.grow(new_cap_exact);
         self.put_owned(owned);
         if let Some(borrowed) = borrowed {
             self[..fill].copy_from_slice(&borrowed[..fill]);
+            unsafe {
+                // SAFETY: it's the filled part of the old buffer
+                self.set_init(fill);
+            }
         }
         self.set_fill(fill);
         Ok(())
