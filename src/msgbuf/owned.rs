@@ -12,16 +12,17 @@ use core::{
 /// - Base pointer, the start of the buffer and the handle for reallocation and deallocation
 /// - Capacity, the length of the buffer
 /// - Initialization cursor, the number of bytes at the beginning of the buffer which can be assumed
-///   to be well-initialized
-/// The initialization cursor can be ignored by the buffer – it's completely valid for it to be
-/// spuriously moved downward (but not upward).
+///   to be well-initialized, and are to be retained when growing
 ///
 /// # Safety
-/// - For an `OwnedBuf` with capacity 𝑐, the first 𝑐 bytes starting from the base buffer must be
+/// - For an `OwnedBuf` with capacity 𝑐, the first 𝑐 bytes starting from the base pointer must be
 ///   valid for reads of `MaybeUninit<u8>` given a shared reference to it and writes given an
 ///   exclusive reference.
 /// - The base pointer may not change unless `.grow()` is called.
 /// - Capacity may not spuriously decrease.
+/// - For an `OwnedBuf` with init cursor 𝑖, after a call to `.grow()`, the first 𝑖 bytes starting
+///   from the base pointer must match the corresponding values before the call. In other words,
+///   growth must retain the contents of the initialized part.
 pub unsafe trait OwnedBuf: Default + Sized {
     /// Creates the owned buffer from its base pointer, capacity and the initialization cursor.
     ///
@@ -53,18 +54,22 @@ pub unsafe trait OwnedBuf: Default + Sized {
 }
 
 unsafe impl OwnedBuf for Vec<u8> {
+    #[inline]
     unsafe fn from_raw_parts(ptr: NonNull<u8>, cap: usize, init: usize) -> Self {
         unsafe { Self::from_raw_parts(ptr.as_ptr(), init, cap) }
     }
+    #[inline]
     fn base_ptr(&self) -> NonNull<u8> {
         unsafe {
             // SAFETY: Vec base is never null
             NonNull::new_unchecked(self.as_ptr().cast_mut())
         }
     }
+    #[inline]
     fn capacity(&self) -> usize {
         self.capacity()
     }
+    #[inline]
     fn init_cursor(&self) -> usize {
         self.len()
     }

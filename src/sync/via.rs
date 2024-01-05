@@ -41,7 +41,7 @@ pub fn recv_via_recv_trunc<TRM: TruncatingRecvMsg + ?Sized>(
         } else {
             fit_first = false;
             buf.set_fill(0);
-            if let Err(qe) = buf.ensure_capacity(buf.len() * 2) {
+            if let Err(qe) = buf.clear_and_grow() {
                 return Ok(RecvResult::QuotaExceeded(qe));
             }
         }
@@ -62,7 +62,7 @@ pub fn recv_via_try_recv<TRMWFS: TruncatingRecvMsgWithFullSize + ?Sized>(
 ) -> Result<RecvResult, TRMWFS::Error> {
     let ok = match slf.try_recv_msg(buf, abuf.as_deref_mut())?.into() {
         RecvResult::Spilled(sz) => {
-            if let Err(qe) = buf.ensure_capacity(sz) {
+            if let Err(qe) = buf.clear_and_grow_to(sz) {
                 return Ok(RecvResult::QuotaExceeded(qe));
             }
             let fitsz = match slf.try_recv_msg(buf, abuf)? {

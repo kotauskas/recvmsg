@@ -27,20 +27,54 @@ impl<Owned: OwnedBuf> MsgBuf<'_, Owned> {
         }
     }
 
-    /// Ensures that the buffer has at least the given capacity, allocating if necessary.
-    pub fn ensure_capacity(&mut self, new_cap: usize) -> Result<(), QuotaExceeded> {
+    /// Grows the buffer by an unspecified amount while retaining its content up to the fill cursor.
+    /// A [`QuotaExceeded`] error is only possible if the current size of the buffer is exactly
+    /// equal to the quota.
+    ///
+    /// For use in receive implementation loops that cannot anticipate the full length of the
+    /// incoming message due to API limitations.
+    ///
+    /// The current implementation grows exponentially, with some additional minor heuristics.
+    #[inline]
+    pub fn grow(&mut self) -> Result<(), QuotaExceeded> {
+        self.grow_to(self.cap + 1)
+    }
+
+    /// Same as [`.grow()`](Self::grow), but discards the filled part of the buffer.
+    #[inline]
+    pub fn clear_and_grow(&mut self) -> Result<(), QuotaExceeded> {
+        self.clear_and_grow_to(self.cap + 1)
+    }
+
+    /// Ensures that the buffer has at least the given capacity, allocating if necessary and
+    /// retaining its content up to the fill cursor.
+    pub fn grow_to(&mut self, new_cap: usize) -> Result<(), QuotaExceeded> {
         let old_cap = self.cap;
+        let fill = self.fill;
         let new_cap_exact =
             if let (true, Some(new_cap)) = (new_cap > old_cap, NonZeroUsize::new(new_cap)) {
                 self.plan_grow_amortized(new_cap)?
             } else {
                 return Ok(());
             };
-        self.init = 0; // Avoids unnecessary copying
-        self.fill = 0;
+        self.init = min(self.init, fill); // Avoids unnecessary copying
         let mut owned = self.take_owned().unwrap_or_default();
+        let borrowed = self.take_borrowed();
+
         owned.grow(new_cap_exact);
         self.put_owned(owned);
+        if let Some(borrowed) = borrowed {
+            self[..fill].copy_from_slice(&borrowed[..fill]);
+        }
+        self.set_fill(fill);
         Ok(())
+    }
+
+    /// Wipes the contents of the buffer and ensures that it has at least the given capacity,
+    /// allocating if necessary.
+    #[inline]
+    pub fn clear_and_grow_to(&mut self, new_cap: usize) -> Result<(), QuotaExceeded> {
+        self.set_fill(0);
+        self.grow_to(new_cap)
     }
 }

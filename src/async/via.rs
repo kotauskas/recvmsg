@@ -66,7 +66,7 @@ pub fn poll_recv_via_poll_recv_trunc<ATRM: TruncatingRecvMsg + ?Sized>(
             break;
         } else {
             buf.set_fill(0);
-            if let Err(qe) = buf.ensure_capacity(buf.len() * 2) {
+            if let Err(qe) = buf.clear_and_grow() {
                 return Poll::Ready(Ok(RecvResult::QuotaExceeded(qe)));
             }
         }
@@ -94,7 +94,7 @@ pub fn poll_recv_via_poll_try_recv<TRMWFS: TruncatingRecvMsgWithFullSize + ?Size
     let mut poll_try_recv = |buf: &mut MsgBuf<'_>| Pin::new(&mut slf.try_recv_msg(buf)).poll(cx);
     let ok = match ready!(poll_try_recv(buf)?).into() {
         RecvResult::Spilled(sz) => {
-            if let Err(qe) = buf.ensure_capacity(sz) {
+            if let Err(qe) = buf.clear_and_grow_to(sz) {
                 return Ok(RecvResult::QuotaExceeded(qe)).into();
             }
             let fitsz = match ready!(poll_try_recv(buf)?) {

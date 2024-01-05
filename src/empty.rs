@@ -9,6 +9,8 @@ use core::{
     task::{Context, Poll},
 };
 
+// TODO use std type..?
+
 /// Dummy message stream that is at end-of-stream from the outset.
 #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Empty<AddrBuf = ()>(PhantomData<fn(&mut AddrBuf)>);

@@ -11,7 +11,7 @@ impl<Owned: OwnedBuf> MsgBuf<'_, Owned> {
     pub fn extend_from_slice(&mut self, slice: &[u8]) -> Result<(), QuotaExceeded> {
         let extra = slice.len();
         let new_len = self.fill + extra;
-        self.ensure_capacity(new_len)?;
+        self.grow_to(new_len)?;
         self.unfilled_part()[..extra].copy_from_slice(relax_init_slice(slice));
         // The slice might be smaller than the unfilled-but-initialized part, in which case passing
         // `new_len` would inexplicably move the initialization cursor back.
