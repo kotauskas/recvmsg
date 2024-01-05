@@ -17,7 +17,8 @@ impl<Owned: OwnedBuf> MsgBuf<'_, Owned> {
         let quota = self.quota.unwrap_or(isize::MAX as usize);
         // The growth function. Grows exponentially and tries to never go under twice size of the
         // struct itself to prevent laughably small allocations.
-        let grown = max(target.get(), size_of::<MsgBuf>()) * 2;
+        let grown_wrt_cap = max(target.get(), self.cap * 2);
+        let grown = max(grown_wrt_cap, size_of::<MsgBuf>() * 2);
         let new_cap = min(grown, quota);
         if new_cap < target.get() {
             Err(QuotaExceeded { quota, attempted_alloc: target })
