@@ -90,6 +90,8 @@ sufficient"
     )
 }
 
+// TODO get rid of the size fields
+
 /// Result type for `.recv_msg()` methods.
 #[derive(Copy, Clone, Debug, Default)]
 pub enum RecvResult {

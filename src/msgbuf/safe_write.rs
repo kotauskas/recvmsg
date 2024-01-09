@@ -1,5 +1,4 @@
 use super::{MsgBuf, MuU8, OwnedBuf, QuotaExceeded};
-use core::cmp::max;
 
 fn relax_init_slice(slice: &[u8]) -> &[MuU8] {
     unsafe { core::mem::transmute(slice) }
@@ -13,10 +12,7 @@ impl<Owned: OwnedBuf> MsgBuf<'_, Owned> {
         let new_len = self.fill + extra;
         self.grow_to(new_len)?;
         self.unfilled_part()[..extra].copy_from_slice(relax_init_slice(slice));
-        // The slice might be smaller than the unfilled-but-initialized part, in which case passing
-        // `new_len` would inexplicably move the initialization cursor back.
-        unsafe { self.set_init(max(new_len, self.init)) };
-        self.set_fill(new_len);
+        unsafe { self.advance_init_and_set_fill(new_len) };
         Ok(())
     }
 }

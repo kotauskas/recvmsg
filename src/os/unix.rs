@@ -48,8 +48,7 @@ pub unsafe fn recv_trunc_recvmsg_with_msghdr(
     // For MSG_TRUNC on Linux
     let bytes_recved_to_set = min(bytes_recved, buf.capacity());
 
-    unsafe { buf.set_init(bytes_recved_to_set) };
-    buf.set_fill(bytes_recved_to_set);
+    unsafe { buf.advance_init_and_set_fill(bytes_recved_to_set) };
 
     Ok((
         if bytes_recved > 0 {

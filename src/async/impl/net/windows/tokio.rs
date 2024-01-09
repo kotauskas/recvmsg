@@ -3,21 +3,15 @@ use core::{
     pin::Pin,
     task::{Context, Poll},
 };
-use std::io;
+use std::{io, os::windows::io::AsSocket};
 use tokio::net::UdpSocket;
 
 fn recv_trunc(slf: &UdpSocket, peek: bool, buf: &mut MsgBuf<'_>) -> io::Result<Option<bool>> {
-    let op = if peek {
-        |s: &UdpSocket, b: &'_ mut _| s.try_peek_from(b).map(|(s, _)| s)
-    } else {
-        |s: &UdpSocket, b: &'_ mut _| s.try_recv(b)
-    };
-    syncimpl::recv_trunc(buf, move |b| op(slf, b))
+    syncimpl::recv_trunc(slf.as_socket(), peek, buf, None)
 }
 
 impl_atrm!(for [UdpSocket], with recv_trunc);
 
-// TODO use macro when RecvEx is introduced
 impl AsyncRecvMsg for &UdpSocket {
     type Error = io::Error;
     #[inline]

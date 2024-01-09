@@ -1,4 +1,5 @@
 use super::{owned::OwnedBuf, MsgBuf, MuU8};
+use core::cmp::max;
 
 /// Cursors of the buffer.
 impl<Owned: OwnedBuf> MsgBuf<'_, Owned> {
@@ -52,6 +53,16 @@ impl<Owned: OwnedBuf> MsgBuf<'_, Owned> {
         );
         self.init = new_init;
     }
+    /// Advances the initialization cursor of the buffer to the given value, doing nothing if it's
+    /// further than the given value.
+    ///
+    /// # Safety
+    /// See [`.set_init()`](Self::set_init).
+    #[inline]
+    pub unsafe fn advance_init_to(&mut self, new_init: usize) {
+        unsafe { self.set_init(max(self.init, new_init)) };
+    }
+
     /// Sets the fill cursor of the buffer to the given value.
     ///
     /// # Panics
@@ -63,5 +74,15 @@ impl<Owned: OwnedBuf> MsgBuf<'_, Owned> {
             "attempt to advance buffer fill cursor past the initialized part"
         );
         self.fill = new_len;
+    }
+
+    /// Does both [`.advance_init_to()`](Self::advance_init_to) and [`.set_fill`](Self::set_fill).
+    ///
+    /// # Safety
+    /// See [`.set_init()`](Self::set_init).
+    #[inline]
+    pub unsafe fn advance_init_and_set_fill(&mut self, new_cur: usize) {
+        unsafe { self.advance_init_to(new_cur) };
+        self.set_fill(new_cur);
     }
 }
