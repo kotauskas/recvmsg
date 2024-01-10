@@ -3,7 +3,7 @@ use std::{io, net::SocketAddr, os::windows::io::AsSocket};
 use tokio::net::UdpSocket;
 
 fn recv_trunc(
-    slf: &UdpSocket,
+    slf: &mut &UdpSocket,
     peek: bool,
     buf: &mut MsgBuf<'_>,
     abuf: Option<&mut SocketAddr>,
@@ -11,12 +11,12 @@ fn recv_trunc(
     syncimpl::recv_trunc(slf.as_socket(), peek, buf, abuf)
 }
 fn recv_msg(
-    slf: &UdpSocket,
+    slf: &mut &UdpSocket,
     buf: &mut MsgBuf<'_>,
     abuf: Option<&mut SocketAddr>,
 ) -> io::Result<RecvResult> {
     syncimpl::recv_msg(slf.as_socket(), buf, abuf)
 }
 
-impl_atrm!(for [UdpSocket], with recv_trunc);
-impl_arm!(for [UdpSocket], with recv_msg);
+impl_atrm!(for UdpSocket, with recv_trunc, sa SocketAddr);
+impl_arm!(for UdpSocket, with recv_msg, sa SocketAddr);

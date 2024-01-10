@@ -20,7 +20,6 @@ pub use {ext::*, futures::*, via::*};
 
 mod r#impl {
     mod net {
-        #[rustfmt::skip]
         #[macro_use]
         mod common {
             #[macro_use]

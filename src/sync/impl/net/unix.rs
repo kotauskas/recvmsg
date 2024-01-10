@@ -2,24 +2,17 @@
 
 mod extract_address;
 mod r#impl;
-pub(crate) use extract_address::{extract_ip_address, extract_unix_address};
-pub(crate) use r#impl::*;
+pub(crate) mod wrap;
 
 use crate::{MsgBuf, RecvMsg, RecvResult, TruncatingRecvMsg, TryRecvResult};
-use libc::sockaddr_storage;
 use std::{
     io,
-    mem::zeroed,
     net::{SocketAddr as InetAddr, UdpSocket},
     os::{
         fd::AsFd,
         unix::net::{SocketAddr as UnixAddr, UnixDatagram},
     },
 };
-
-pub(crate) fn sockaddr_storage() -> sockaddr_storage {
-    unsafe { zeroed() }
-}
 
 impl TruncatingRecvMsg for &UdpSocket {
     type Error = io::Error;
@@ -31,12 +24,7 @@ impl TruncatingRecvMsg for &UdpSocket {
         buf: &mut MsgBuf<'_>,
         abuf: Option<&mut InetAddr>,
     ) -> io::Result<Option<bool>> {
-        let mut fused_abuf = (sockaddr_storage(), 0);
-        let ret = recv_trunc(self.as_fd(), peek, buf, abuf.is_some().then_some(&mut fused_abuf))?;
-        if let Some(abuf) = abuf {
-            *abuf = extract_ip_address(&fused_abuf.0, fused_abuf.1)?;
-        }
-        Ok(ret)
+        wrap::recv_trunc_ip(self.as_fd(), peek, buf, abuf)
     }
 }
 
@@ -64,17 +52,7 @@ impl crate::TruncatingRecvMsgWithFullSize for &UdpSocket {
         buf: &mut MsgBuf<'_>,
         abuf: Option<&mut InetAddr>,
     ) -> io::Result<TryRecvResult> {
-        let mut fused_abuf = (sockaddr_storage(), 0);
-        let ret = recv_trunc_with_full_size(
-            self.as_fd(),
-            peek,
-            buf,
-            abuf.is_some().then_some(&mut fused_abuf),
-        )?;
-        if let Some(abuf) = abuf {
-            *abuf = extract_ip_address(&fused_abuf.0, fused_abuf.1)?;
-        }
-        Ok(ret)
+        wrap::recv_trunc_with_full_size_ip(self.as_fd(), peek, buf, abuf)
     }
 }
 
@@ -101,12 +79,7 @@ impl RecvMsg for &UdpSocket {
         buf: &mut MsgBuf<'_>,
         abuf: Option<&mut InetAddr>,
     ) -> io::Result<RecvResult> {
-        let mut fused_abuf = (sockaddr_storage(), 0);
-        let ret = recv_msg(self.as_fd(), buf, abuf.is_some().then_some(&mut fused_abuf))?;
-        if let Some(abuf) = abuf {
-            *abuf = extract_ip_address(&fused_abuf.0, fused_abuf.1)?;
-        }
-        Ok(ret)
+        wrap::recv_msg_ip(self.as_fd(), buf, abuf)
     }
 }
 
@@ -133,12 +106,7 @@ impl TruncatingRecvMsg for &UnixDatagram {
         buf: &mut MsgBuf<'_>,
         abuf: Option<&mut UnixAddr>,
     ) -> io::Result<Option<bool>> {
-        let mut fused_abuf = (sockaddr_storage(), 0);
-        let ret = recv_trunc(self.as_fd(), peek, buf, abuf.is_some().then_some(&mut fused_abuf))?;
-        if let Some(abuf) = abuf {
-            *abuf = extract_unix_address(&fused_abuf.0, fused_abuf.1)?;
-        }
-        Ok(ret)
+        wrap::recv_trunc_unix(self.as_fd(), peek, buf, abuf)
     }
 }
 
@@ -166,17 +134,7 @@ impl crate::TruncatingRecvMsgWithFullSize for &UnixDatagram {
         buf: &mut MsgBuf<'_>,
         abuf: Option<&mut UnixAddr>,
     ) -> io::Result<TryRecvResult> {
-        let mut fused_abuf = (sockaddr_storage(), 0);
-        let ret = recv_trunc_with_full_size(
-            self.as_fd(),
-            peek,
-            buf,
-            abuf.is_some().then_some(&mut fused_abuf),
-        )?;
-        if let Some(abuf) = abuf {
-            *abuf = extract_unix_address(&fused_abuf.0, fused_abuf.1)?;
-        }
-        Ok(ret)
+        wrap::recv_trunc_with_full_size_unix(self.as_fd(), peek, buf, abuf)
     }
 }
 
@@ -203,14 +161,7 @@ impl RecvMsg for &UnixDatagram {
         buf: &mut MsgBuf<'_>,
         abuf: Option<&mut UnixAddr>,
     ) -> io::Result<RecvResult> {
-        #[cfg(any(target_os = "linux", target_os = "android"))]
-        {
-            crate::sync::recv_via_try_recv(self, buf, abuf)
-        }
-        #[cfg(not(any(target_os = "linux", target_os = "android")))]
-        {
-            crate::sync::recv_via_recv_trunc(self, buf, abuf)
-        }
+        wrap::recv_msg_unix(self.as_fd(), buf, abuf)
     }
 }
 
