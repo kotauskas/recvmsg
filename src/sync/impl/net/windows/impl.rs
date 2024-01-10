@@ -134,7 +134,7 @@ fn recv_piecewise(socket: BorrowedSocket<'_>, buf: &mut MsgBuf<'_>) -> io::Resul
 }
 */
 
-pub(super) fn recv_msg(
+pub(crate) fn recv_msg(
     socket: BorrowedSocket,
     buf: &mut MsgBuf<'_>,
     abuf: Option<&mut SocketAddr>,

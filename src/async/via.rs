@@ -12,15 +12,16 @@ fn dbgtrp(msg: &str) {
 /// Implements [`TruncatingRecvMsg::poll_recv_trunc()`] via
 /// [`TruncatingRecvMsgWithFullSize::poll_recv_trunc_with_full_size()`].
 pub fn poll_recv_trunc_via_poll_recv_trunc_with_full_size<
-    ATRMWFS: TruncatingRecvMsgWithFullSize + ?Sized,
+    TRMWFS: TruncatingRecvMsgWithFullSize + ?Sized,
 >(
-    slf: Pin<&mut ATRMWFS>,
+    slf: Pin<&mut TRMWFS>,
     cx: &mut Context<'_>,
     peek: bool,
     buf: &mut MsgBuf<'_>,
-) -> Poll<Result<Option<bool>, ATRMWFS::Error>> {
+    abuf: Option<&mut TRMWFS::AddrBuf>,
+) -> Poll<Result<Option<bool>, TRMWFS::Error>> {
     let cap = buf.len();
-    let rslt = ready!(slf.poll_recv_trunc_with_full_size(cx, peek, buf)?);
+    let rslt = ready!(slf.poll_recv_trunc_with_full_size(cx, peek, buf, abuf)?);
     debug_assert_eq!(buf.len(), cap, "`recv_trunc_with_size()` changed buffer capacity");
     Ok(match rslt {
         TryRecvResult::Fit(..) => Some(true),
@@ -31,15 +32,16 @@ pub fn poll_recv_trunc_via_poll_recv_trunc_with_full_size<
 }
 
 /// Implements [`RecvMsg::poll_recv_msg()`] via [`TruncatingRecvMsg::poll_recv_trunc()`].
-pub fn poll_recv_via_poll_recv_trunc<ATRM: TruncatingRecvMsg + ?Sized>(
-    mut slf: Pin<&mut ATRM>,
+pub fn poll_recv_via_poll_recv_trunc<TRM: TruncatingRecvMsg + ?Sized>(
+    mut slf: Pin<&mut TRM>,
     cx: &mut Context<'_>,
     buf: &mut MsgBuf<'_>,
-) -> Poll<Result<RecvResult, ATRM::Error>> {
+    mut abuf: Option<&mut TRM::AddrBuf>,
+) -> Poll<Result<RecvResult, TRM::Error>> {
     let mut fit_first = true;
     let mut first = true;
     loop {
-        let rr = match Pin::new(&mut slf).poll_recv_trunc(cx, true, buf) {
+        let rr = match Pin::new(&mut slf).poll_recv_trunc(cx, true, buf, abuf.as_deref_mut()) {
             Poll::Ready(r) => r,
             Poll::Pending => {
                 if !first {
@@ -90,8 +92,10 @@ pub fn poll_recv_via_poll_try_recv<TRMWFS: TruncatingRecvMsgWithFullSize + ?Size
     mut slf: Pin<&mut TRMWFS>,
     cx: &mut Context<'_>,
     buf: &mut MsgBuf<'_>,
+    mut abuf: Option<&mut TRMWFS::AddrBuf>,
 ) -> Poll<Result<RecvResult, TRMWFS::Error>> {
-    let mut poll_try_recv = |buf: &mut MsgBuf<'_>| Pin::new(&mut slf.try_recv_msg(buf)).poll(cx);
+    let mut poll_try_recv =
+        |buf: &mut MsgBuf<'_>| Pin::new(&mut slf.try_recv_msg(buf, abuf.as_deref_mut())).poll(cx);
     let ok = match ready!(poll_try_recv(buf)?).into() {
         RecvResult::Spilled(sz) => {
             if let Err(qe) = buf.clear_and_grow_to(sz) {

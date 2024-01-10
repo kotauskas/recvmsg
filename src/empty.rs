@@ -66,12 +66,14 @@ impl<AddrBuf> RecvMsg for Empty<AddrBuf> {
 
 impl<AddrBuf> AsyncTruncatingRecvMsg for Empty<AddrBuf> {
     type Error = Infallible;
+    type AddrBuf = AddrBuf;
     #[inline(always)]
     fn poll_recv_trunc(
         self: Pin<&mut Self>,
         _: &mut Context<'_>,
         _: bool,
         _: &mut MsgBuf<'_>,
+        _: Option<&mut AddrBuf>,
     ) -> Poll<Result<Option<bool>, Self::Error>> {
         Ok(None).into()
     }
@@ -83,17 +85,20 @@ impl<AddrBuf> AsyncTruncatingRecvMsgWithFullSize for Empty<AddrBuf> {
         _: &mut Context<'_>,
         _: bool,
         _: &mut MsgBuf<'_>,
+        _: Option<&mut AddrBuf>,
     ) -> Poll<Result<TryRecvResult, Self::Error>> {
         Ok(TryRecvResult::EndOfStream).into()
     }
 }
 impl<AddrBuf> AsyncRecvMsg for Empty<AddrBuf> {
     type Error = Infallible;
+    type AddrBuf = AddrBuf;
     #[inline(always)]
     fn poll_recv_msg(
         self: Pin<&mut Self>,
         _: &mut Context<'_>,
         _: &mut MsgBuf<'_>,
+        _: Option<&mut AddrBuf>,
     ) -> Poll<Result<RecvResult, Self::Error>> {
         Ok(RecvResult::EndOfStream).into()
     }

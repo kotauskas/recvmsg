@@ -87,6 +87,7 @@ pub trait TruncatingRecvMsgWithFullSize: TruncatingRecvMsg {
     ///
     /// This method simplifies use of `.recv_trunc_with_full_size()` by keeping `buf` consistent in
     /// error conditions and making the call to `.discard_msg()` implicitly as needed.
+    // TODO move to ext
     fn try_recv_msg(
         &mut self,
         buf: &mut MsgBuf<'_>,

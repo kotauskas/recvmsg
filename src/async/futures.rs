@@ -13,16 +13,17 @@ macro_rules! futdoc {
 
 futdoc! { TruncatingRecvMsgExt::recv_trunc
 #[derive(Debug)]
-pub struct RecvTrunc<'io, 'buf, 'slice, TRM: ?Sized> {
+pub struct RecvTrunc<'io, 'buf, 'slice, 'abuf, TRM: TruncatingRecvMsg + ?Sized> {
     pub(super) recver: &'io mut TRM,
     pub(super) peek: bool,
     pub(super) buf: &'buf mut MsgBuf<'slice>,
+    pub(super) abuf: Option<&'abuf mut TRM::AddrBuf>,
 }}
-impl<TRM: TruncatingRecvMsg + Unpin + ?Sized> Future for RecvTrunc<'_, '_, '_, TRM> {
+impl<TRM: TruncatingRecvMsg + Unpin + ?Sized> Future for RecvTrunc<'_, '_, '_, '_, TRM> {
     type Output = Result<Option<bool>, TRM::Error>;
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        let Self { recver, peek, buf } = self.get_mut();
-        Pin::new(&mut **recver).poll_recv_trunc(cx, *peek, buf)
+        let Self { recver, peek, buf, abuf } = self.get_mut();
+        Pin::new(&mut **recver).poll_recv_trunc(cx, *peek, buf, abuf.as_deref_mut())
     }
 }
 
@@ -39,50 +40,61 @@ impl<TRM: TruncatingRecvMsg + Unpin + ?Sized> Future for DiscardMsg<'_, TRM> {
 
 futdoc! { TruncatingRecvMsgWithFullSizeExt::recv_trunc_with_full_size
 #[derive(Debug)]
-pub struct RecvTruncWithFullSize<'io, 'buf, 'slice, TRMWFS: ?Sized> {
+pub struct RecvTruncWithFullSize<'io, 'buf, 'slice, 'abuf, TRMWFS: TruncatingRecvMsgWithFullSize + ?Sized> {
     pub(super) recver: &'io mut TRMWFS,
     pub(super) peek: bool,
     pub(super) buf: &'buf mut MsgBuf<'slice>,
+    pub(super) abuf: Option<&'abuf mut TRMWFS::AddrBuf>,
 }}
 impl<TRMWFS: TruncatingRecvMsgWithFullSize + Unpin + ?Sized> Future
-    for RecvTruncWithFullSize<'_, '_, '_, TRMWFS>
+    for RecvTruncWithFullSize<'_, '_, '_, '_, TRMWFS>
 {
     type Output = Result<TryRecvResult, TRMWFS::Error>;
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        let Self { recver, peek, buf } = self.get_mut();
-        Pin::new(&mut **recver).poll_recv_trunc_with_full_size(cx, *peek, buf)
+        let Self { recver, peek, buf, abuf } = self.get_mut();
+        Pin::new(&mut **recver).poll_recv_trunc_with_full_size(cx, *peek, buf, abuf.as_deref_mut())
     }
 }
 
 futdoc! { TruncatingRecvMsgWithFullSizeExt::try_recv_msg
 #[derive(Debug)]
-pub struct TryRecv<'io, 'buf, 'slice, TRMWFS: ?Sized> {
+pub struct TryRecv<'io, 'buf, 'slice, 'abuf, TRMWFS: TruncatingRecvMsg + ?Sized> {
     recver: &'io mut TRMWFS,
-    state: TryRecvState<'buf, 'slice>,
+    state: TryRecvState<'buf, 'slice, 'abuf, TRMWFS::AddrBuf>,
 }}
-impl<'io, 'buf, 'slice, TRMWFS: ?Sized> TryRecv<'io, 'buf, 'slice, TRMWFS> {
-    pub(super) fn new(recver: &'io mut TRMWFS, buf: &'buf mut MsgBuf<'slice>) -> Self {
-        Self { recver, state: TryRecvState::Recving { buf } }
+impl<'io, 'buf, 'slice, 'abuf, TRMWFS: TruncatingRecvMsg + ?Sized>
+    TryRecv<'io, 'buf, 'slice, 'abuf, TRMWFS>
+{
+    pub(super) fn new(
+        recver: &'io mut TRMWFS,
+        buf: &'buf mut MsgBuf<'slice>,
+        abuf: Option<&'abuf mut TRMWFS::AddrBuf>,
+    ) -> Self {
+        Self { recver, state: TryRecvState::Recving { buf, abuf } }
     }
 }
 
 #[derive(Debug)]
-enum TryRecvState<'buf, 'slice> {
-    Recving { buf: &'buf mut MsgBuf<'slice> },
+enum TryRecvState<'buf, 'slice, 'abuf, AB: ?Sized> {
+    Recving { buf: &'buf mut MsgBuf<'slice>, abuf: Option<&'abuf mut AB> },
     Discarding { sz: usize },
     End,
 }
 
 impl<TRMWFS: TruncatingRecvMsgWithFullSize + Unpin + ?Sized> Future
-    for TryRecv<'_, '_, '_, TRMWFS>
+    for TryRecv<'_, '_, '_, '_, TRMWFS>
 {
     type Output = Result<TryRecvResult, TRMWFS::Error>;
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
         let slf = self.get_mut();
         match &mut slf.state {
-            TryRecvState::Recving { buf } => {
-                let Poll::Ready(rslt) =
-                    Pin::new(&mut *slf.recver).poll_recv_trunc_with_full_size(cx, true, buf)?
+            TryRecvState::Recving { buf, abuf } => {
+                let Poll::Ready(rslt) = Pin::new(&mut *slf.recver).poll_recv_trunc_with_full_size(
+                    cx,
+                    true,
+                    buf,
+                    abuf.as_deref_mut(),
+                )?
                 else {
                     return Poll::Pending;
                 };
@@ -120,14 +132,15 @@ impl<TRMWFS: TruncatingRecvMsgWithFullSize + Unpin + ?Sized> Future
 
 futdoc! { ReliableRecvMsgExt::recv_msg
 #[derive(Debug)]
-pub struct Recv<'io, 'buf, 'slice: 'buf, RM: ?Sized> {
+pub struct Recv<'io, 'buf, 'slice, 'abuf, RM: RecvMsg + ?Sized> {
     pub(super) recver: &'io mut RM,
     pub(super) buf: &'buf mut MsgBuf<'slice>,
+    pub(super) abuf: Option<&'abuf mut RM::AddrBuf>
 }}
-impl<'buf, RM: RecvMsg + Unpin + ?Sized> Future for Recv<'_, 'buf, '_, RM> {
+impl<'buf, RM: RecvMsg + Unpin + ?Sized> Future for Recv<'_, 'buf, '_, '_, RM> {
     type Output = Result<RecvResult, RM::Error>;
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        let Recv { recver, buf } = self.get_mut();
-        Pin::new(&mut **recver).poll_recv_msg(cx, buf)
+        let Recv { recver, buf, abuf } = self.get_mut();
+        Pin::new(&mut **recver).poll_recv_msg(cx, buf, abuf.as_deref_mut())
     }
 }

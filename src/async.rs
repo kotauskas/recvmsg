@@ -79,6 +79,11 @@ pub trait TruncatingRecvMsg {
     /// allow the crate to be `#![no_std]`.
     type Error;
 
+    /// The buffer used for sender address reception.
+    ///
+    /// Conventionally `()` if sender addresses are not available.
+    type AddrBuf;
+
     /// Polls a future that receives one message into the given buffer, returning within
     /// `Poll::Ready`:
     /// - `Ok(Some(true))` if the message has been successfully received;
@@ -104,6 +109,7 @@ pub trait TruncatingRecvMsg {
         cx: &mut Context<'_>,
         peek: bool,
         buf: &mut MsgBuf<'_>,
+        abuf: Option<&mut Self::AddrBuf>,
     ) -> Poll<Result<Option<bool>, Self::Error>>;
 
     /// Polls a future that discards the message at the front of the queue. If at
@@ -116,7 +122,7 @@ pub trait TruncatingRecvMsg {
         self: Pin<&mut Self>,
         cx: &mut Context<'_>,
     ) -> Poll<Result<(), Self::Error>> {
-        match ready!(self.poll_recv_trunc(cx, false, &mut MsgBuf::from(&mut [0][..]))) {
+        match ready!(self.poll_recv_trunc(cx, false, &mut MsgBuf::from(&mut [0][..]), None)) {
             Ok(..) => Ok(()),
             Err(e) => Err(e),
         }
@@ -136,6 +142,7 @@ pub trait TruncatingRecvMsgWithFullSize: TruncatingRecvMsg {
         cx: &mut Context<'_>,
         peek: bool,
         buf: &mut MsgBuf<'_>,
+        abuf: Option<&mut Self::AddrBuf>,
     ) -> Poll<Result<TryRecvResult, Self::Error>>;
 }
 
@@ -150,6 +157,11 @@ pub trait RecvMsg {
     /// allow the crate to be `#![no_std]`.
     type Error;
 
+    /// The buffer used for sender address reception.
+    ///
+    /// Conventionally `()` if sender addresses are not available.
+    type AddrBuf;
+
     /// Polls a future that receives one message using the given buffer, (re)allocating the buffer
     /// if necessary.
     ///
@@ -159,5 +171,6 @@ pub trait RecvMsg {
         self: Pin<&mut Self>,
         cx: &mut Context<'_>,
         buf: &mut MsgBuf<'_>,
+        abuf: Option<&mut Self::AddrBuf>,
     ) -> Poll<Result<RecvResult, Self::Error>>;
 }
