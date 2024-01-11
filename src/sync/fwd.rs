@@ -36,11 +36,6 @@ impl<T: TruncatingRecvMsgWithFullSize + ?Sized> TruncatingRecvMsgWithFullSize fo
             buf: &mut MsgBuf<'_>,
             abuf: Option<&mut Self::AddrBuf>,
         ) -> Result<TryRecvResult, Self::Error>;
-        fn try_recv_msg(
-            &mut self,
-            buf: &mut MsgBuf<'_>,
-            abuf: Option<&mut Self::AddrBuf>,
-        ) -> Result<TryRecvResult, Self::Error>;
     }
 }
 impl<T: TruncatingRecvMsgWithFullSize + ?Sized> TruncatingRecvMsgWithFullSize for Box<T> {
@@ -48,11 +43,6 @@ impl<T: TruncatingRecvMsgWithFullSize + ?Sized> TruncatingRecvMsgWithFullSize fo
         fn recv_trunc_with_full_size(
             &mut self,
             peek: bool,
-            buf: &mut MsgBuf<'_>,
-            abuf: Option<&mut Self::AddrBuf>,
-        ) -> Result<TryRecvResult, Self::Error>;
-        fn try_recv_msg(
-            &mut self,
             buf: &mut MsgBuf<'_>,
             abuf: Option<&mut Self::AddrBuf>,
         ) -> Result<TryRecvResult, Self::Error>;

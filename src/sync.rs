@@ -1,8 +1,9 @@
 //! Non-async reliable message reception trait and its helpers.
 
+mod ext;
 mod fwd;
 mod via;
-pub use via::*;
+pub use {ext::*, via::*};
 
 pub(crate) mod r#impl {
     #[cfg(feature = "std_net")]
@@ -75,38 +76,6 @@ pub trait TruncatingRecvMsgWithFullSize: TruncatingRecvMsg {
         buf: &mut MsgBuf<'_>,
         abuf: Option<&mut Self::AddrBuf>,
     ) -> Result<TryRecvResult, Self::Error>;
-
-    /// Attempts to receive one message using the given buffer. If the message at the front of the
-    /// queue does not fit, no (re)allocation is done and the message is neither written to the
-    /// buffer nor taken off the underlying queue.
-    ///
-    /// In the `Ok(..)` case, if `abuf` is `Some(..)`, it is filled with the address of the sender.
-    ///
-    /// If the operation could not be completed for external reasons, an error from the outermost
-    /// `Result` is returned.
-    ///
-    /// This method simplifies use of `.recv_trunc_with_full_size()` by keeping `buf` consistent in
-    /// error conditions and making the call to `.discard_msg()` implicitly as needed.
-    // TODO move to ext
-    fn try_recv_msg(
-        &mut self,
-        buf: &mut MsgBuf<'_>,
-        abuf: Option<&mut Self::AddrBuf>,
-    ) -> Result<TryRecvResult, Self::Error> {
-        Ok(match self.recv_trunc_with_full_size(true, buf, abuf)? {
-            TryRecvResult::Fit(sz) => {
-                debug_assert_eq!(buf.len_filled(), sz);
-                self.discard_msg()?;
-                TryRecvResult::Fit(sz)
-            }
-            TryRecvResult::Spilled(sz) => {
-                buf.set_fill(0);
-                buf.has_msg = false;
-                TryRecvResult::Spilled(sz)
-            }
-            TryRecvResult::EndOfStream => TryRecvResult::EndOfStream,
-        })
-    }
 }
 
 /// Receiving from socket-like connections with message boundaries without truncation.

@@ -54,7 +54,7 @@ pub fn recv_via_recv_trunc<TRM: TruncatingRecvMsg + ?Sized>(
     })
 }
 
-/// Implements [`RecvMsg::recv_msg()`] via [`TruncatingRecvMsgWithFullSize::try_recv_msg()`].
+/// Implements [`RecvMsg::recv_msg()`] via [`TruncatingRecvMsgWithFullSizeExt::try_recv_msg()`].
 pub fn recv_via_try_recv<TRMWFS: TruncatingRecvMsgWithFullSize + ?Sized>(
     slf: &mut TRMWFS,
     buf: &mut MsgBuf<'_>,
