@@ -130,7 +130,7 @@ impl<TRMWFS: TruncatingRecvMsgWithFullSize + Unpin + ?Sized> Future
     }
 }
 
-futdoc! { ReliableRecvMsgExt::recv_msg
+futdoc! { RecvMsgExt::recv_msg
 #[derive(Debug)]
 pub struct Recv<'io, 'buf, 'slice, 'abuf, RM: RecvMsg + ?Sized> {
     pub(super) recver: &'io mut RM,
