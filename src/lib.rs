@@ -47,18 +47,23 @@
 #![warn(missing_docs, unsafe_code)]
 extern crate alloc;
 
-// TODO maybe recvfrom should only have the addr be written when there's no truncation
 // TODO vectored
 // TODO async-std
+// TODO from_fns
 
 #[macro_use]
 mod macros;
 
 pub mod r#async; // ya can't stop me
 pub mod msgbuf;
+pub mod prelude;
 pub mod sync;
 
-/// OS-specific functionality. Only available when the standard library is enabled.
+/// OS-specific functionality, in particular that which has public APIs that go beyond trait
+/// implementations.
+///
+/// Only available when the standard library is enabled. Items from foreign platforms are not
+/// visible in Rustdoc.
 #[cfg(feature = "std")]
 pub mod os {
     /// Unix-specific functionality.
@@ -68,18 +73,7 @@ pub mod os {
 
 mod empty;
 
-pub use {
-    empty::*,
-    msgbuf::{MsgBuf, QuotaExceeded},
-    r#async::{
-        RecvMsg as AsyncRecvMsg, RecvMsgExt as AsyncRecvMsgExt,
-        TruncatingRecvMsg as AsyncTruncatingRecvMsg,
-        TruncatingRecvMsgExt as AsyncTruncatingRecvMsgExt,
-        TruncatingRecvMsgWithFullSize as AsyncTruncatingRecvMsgWithFullSize,
-        TruncatingRecvMsgWithFullSizeExt as AsyncTruncatingRecvMsgWithFullSizeExt,
-    },
-    sync::{RecvMsg, TruncatingRecvMsg, TruncatingRecvMsgWithFullSize},
-};
+pub use {empty::*, msgbuf::QuotaExceeded, prelude::*};
 
 #[track_caller]
 fn panic_try_recv_retcon() -> ! {
