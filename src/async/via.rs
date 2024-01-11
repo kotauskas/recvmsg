@@ -24,7 +24,7 @@ pub fn poll_recv_trunc_via_poll_recv_trunc_with_full_size<
     let rslt = ready!(slf.poll_recv_trunc_with_full_size(cx, peek, buf, abuf)?);
     debug_assert_eq!(buf.len(), cap, "`recv_trunc_with_size()` changed buffer capacity");
     Ok(match rslt {
-        TryRecvResult::Fit(..) => Some(true),
+        TryRecvResult::Fit => Some(true),
         TryRecvResult::Spilled(..) => Some(false),
         TryRecvResult::EndOfStream => None,
     })
@@ -78,12 +78,7 @@ pub fn poll_recv_via_poll_recv_trunc<TRM: TruncatingRecvMsg + ?Sized>(
         Poll::Ready(Err(e)) => return Poll::Ready(Err(e)),
         Poll::Pending => panic!(".poll_discard_msg() returned Poll::Pending after successful peek"),
     }
-    Ok(if fit_first {
-        RecvResult::Fit(buf.len_filled())
-    } else {
-        RecvResult::Spilled(buf.len_filled())
-    })
-    .into()
+    Ok(if fit_first { RecvResult::Fit } else { RecvResult::Spilled }).into()
 }
 
 /// Implements [`RecvMsg::poll_recv_msg()`] via
@@ -96,20 +91,18 @@ pub fn poll_recv_via_poll_try_recv<TRMWFS: TruncatingRecvMsgWithFullSize + ?Size
 ) -> Poll<Result<RecvResult, TRMWFS::Error>> {
     let mut poll_try_recv =
         |buf: &mut MsgBuf<'_>| Pin::new(&mut slf.try_recv_msg(buf, abuf.as_deref_mut())).poll(cx);
-    let ok = match ready!(poll_try_recv(buf)?).into() {
-        RecvResult::Spilled(sz) => {
+    let ok = match ready!(poll_try_recv(buf)?) {
+        TryRecvResult::Spilled(sz) => {
             if let Err(qe) = buf.clear_and_grow_to(sz) {
                 return Ok(RecvResult::QuotaExceeded(qe)).into();
             }
-            let fitsz = match ready!(poll_try_recv(buf)?) {
-                TryRecvResult::Fit(sz) => sz,
+            match ready!(poll_try_recv(buf)?) {
+                TryRecvResult::Fit => RecvResult::Spilled,
                 TryRecvResult::Spilled(..) => panic_try_recv_retcon(),
                 TryRecvResult::EndOfStream => return Ok(RecvResult::EndOfStream).into(),
-            };
-            debug_assert_eq!(sz, fitsz);
-            RecvResult::Spilled(sz)
+            }
         }
-        fit_or_end => fit_or_end,
+        fit_or_end => fit_or_end.into(),
     };
     Ok(ok).into()
 }

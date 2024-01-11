@@ -19,10 +19,9 @@ pub trait TruncatingRecvMsgWithFullSizeExt: TruncatingRecvMsgWithFullSize {
         abuf: Option<&mut Self::AddrBuf>,
     ) -> Result<TryRecvResult, Self::Error> {
         Ok(match self.recv_trunc_with_full_size(true, buf, abuf)? {
-            TryRecvResult::Fit(sz) => {
-                debug_assert_eq!(buf.len_filled(), sz);
+            TryRecvResult::Fit => {
                 self.discard_msg()?;
-                TryRecvResult::Fit(sz)
+                TryRecvResult::Fit
             }
             TryRecvResult::Spilled(sz) => {
                 buf.set_fill(0);

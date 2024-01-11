@@ -84,8 +84,6 @@ sufficient"
     )
 }
 
-// TODO get rid of the size fields
-
 /// Result type for `.recv_msg()` methods.
 #[derive(Copy, Clone, Debug, Default)]
 pub enum RecvResult {
@@ -93,10 +91,10 @@ pub enum RecvResult {
     #[default]
     EndOfStream,
     /// The message successfully fit into the provided buffer and is of the given size.
-    Fit(usize),
+    Fit,
     /// The message didn't fit into the provided buffer, and has been received into [`MsgBuf`]'s
     /// `owned` field, which has been updated with a new or extended allocation.
-    Spilled(usize),
+    Spilled,
     /// The buffer size quota was exceeded.
     QuotaExceeded(QuotaExceeded),
 }
@@ -105,8 +103,8 @@ impl From<TryRecvResult> for RecvResult {
     fn from(rslt: TryRecvResult) -> Self {
         match rslt {
             TryRecvResult::EndOfStream => Self::EndOfStream,
-            TryRecvResult::Fit(sz) => Self::Fit(sz),
-            TryRecvResult::Spilled(sz) => Self::Spilled(sz),
+            TryRecvResult::Fit => Self::Fit,
+            TryRecvResult::Spilled(_) => Self::Spilled,
         }
     }
 }
@@ -118,7 +116,7 @@ pub enum TryRecvResult {
     #[default]
     EndOfStream,
     /// The message successfully fit into the provided buffer and is of the given size.
-    Fit(usize),
+    Fit,
     /// The message didn't fit into the provided buffer.
     /// - If returned by `.try_recv_msg()`, this means that initialized part of the buffer has not
     ///   been modified, and the message at the front of the queue is of the given size.

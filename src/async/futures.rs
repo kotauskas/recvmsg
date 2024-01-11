@@ -77,7 +77,7 @@ impl<'io, 'buf, 'slice, 'abuf, TRMWFS: TruncatingRecvMsg + ?Sized>
 #[derive(Debug)]
 enum TryRecvState<'buf, 'slice, 'abuf, AB: ?Sized> {
     Recving { buf: &'buf mut MsgBuf<'slice>, abuf: Option<&'abuf mut AB> },
-    Discarding { sz: usize },
+    Discarding,
     End,
 }
 
@@ -99,9 +99,8 @@ impl<TRMWFS: TruncatingRecvMsgWithFullSize + Unpin + ?Sized> Future
                     return Poll::Pending;
                 };
                 match rslt {
-                    TryRecvResult::Fit(sz) => {
-                        debug_assert_eq!(buf.len_filled(), sz);
-                        slf.state = TryRecvState::Discarding { sz };
+                    TryRecvResult::Fit => {
+                        slf.state = TryRecvState::Discarding;
                         Pin::new(slf).poll(cx)
                     }
                     TryRecvResult::Spilled(sz) => {
@@ -112,19 +111,16 @@ impl<TRMWFS: TruncatingRecvMsgWithFullSize + Unpin + ?Sized> Future
                     TryRecvResult::EndOfStream => Poll::Ready(Ok(TryRecvResult::EndOfStream)),
                 }
             }
-            TryRecvState::Discarding { sz } => {
-                match Pin::new(&mut *slf.recver).poll_discard_msg(cx) {
-                    Poll::Ready(r) => {
-                        let sz = *sz;
-                        slf.state = TryRecvState::End;
-                        Poll::Ready(match r {
-                            Ok(()) => Ok(TryRecvResult::Fit(sz)),
-                            Err(e) => Err(e),
-                        })
-                    }
-                    Poll::Pending => Poll::Pending,
+            TryRecvState::Discarding => match Pin::new(&mut *slf.recver).poll_discard_msg(cx) {
+                Poll::Ready(r) => {
+                    slf.state = TryRecvState::End;
+                    Poll::Ready(match r {
+                        Ok(()) => Ok(TryRecvResult::Fit),
+                        Err(e) => Err(e),
+                    })
                 }
-            }
+                Poll::Pending => Poll::Pending,
+            },
             TryRecvState::End => panic!("attempt to poll a future which has already completed"),
         }
     }

@@ -44,7 +44,7 @@ the memory allocator decides to be smarter than usual and give us a huge buffer 
     let comck = |rslt, buf: &mut MsgBuf<'_>| {
         dbg!(&*buf);
         dbg!(rslt);
-        assert!(matches!(rslt, RecvResult::Spilled(sz) if sz == msg.len()));
+        assert!(matches!(rslt, RecvResult::Spilled));
         assert_eq!(buf.len_filled(), msg.len());
         assert_eq!(from_utf8(buf.filled_part()).expect("invalid UTF-8"), msg);
     };

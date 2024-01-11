@@ -13,7 +13,7 @@ pub fn recv_trunc_via_recv_trunc_with_full_size<TRMWFS: TruncatingRecvMsgWithFul
     let rslt = slf.recv_trunc_with_full_size(peek, buf, abuf)?;
     debug_assert_eq!(buf.len(), cap, "`recv_trunc_with_size()` changed buffer capacity");
     Ok(match rslt {
-        TryRecvResult::Fit(..) => Some(true),
+        TryRecvResult::Fit => Some(true),
         TryRecvResult::Spilled(..) => Some(false),
         TryRecvResult::EndOfStream => None,
     })
@@ -47,11 +47,7 @@ pub fn recv_via_recv_trunc<TRM: TruncatingRecvMsg + ?Sized>(
         }
     }
     slf.discard_msg()?;
-    Ok(if fit_first {
-        RecvResult::Fit(buf.len_filled())
-    } else {
-        RecvResult::Spilled(buf.len_filled())
-    })
+    Ok(if fit_first { RecvResult::Fit } else { RecvResult::Spilled })
 }
 
 /// Implements [`RecvMsg::recv_msg()`] via [`TruncatingRecvMsgWithFullSizeExt::try_recv_msg()`].
@@ -60,20 +56,18 @@ pub fn recv_via_try_recv<TRMWFS: TruncatingRecvMsgWithFullSize + ?Sized>(
     buf: &mut MsgBuf<'_>,
     mut abuf: Option<&mut TRMWFS::AddrBuf>,
 ) -> Result<RecvResult, TRMWFS::Error> {
-    let ok = match slf.try_recv_msg(buf, abuf.as_deref_mut())?.into() {
-        RecvResult::Spilled(sz) => {
+    let ok = match slf.try_recv_msg(buf, abuf.as_deref_mut())? {
+        TryRecvResult::Spilled(sz) => {
             if let Err(qe) = buf.clear_and_grow_to(sz) {
                 return Ok(RecvResult::QuotaExceeded(qe));
             }
-            let fitsz = match slf.try_recv_msg(buf, abuf)? {
-                TryRecvResult::Fit(sz) => sz,
+            match slf.try_recv_msg(buf, abuf)? {
+                TryRecvResult::Fit => RecvResult::Spilled,
                 TryRecvResult::Spilled(..) => panic_try_recv_retcon(),
                 TryRecvResult::EndOfStream => return Ok(RecvResult::EndOfStream),
-            };
-            debug_assert_eq!(sz, fitsz);
-            RecvResult::Spilled(sz)
+            }
         }
-        fit_or_end => fit_or_end,
+        fit_or_end => fit_or_end.into(),
     };
     Ok(ok)
 }
