@@ -23,3 +23,6 @@ libc = { version = "0.2.150", optional = true }
 windows-sys = { version = "0.52.0", features = [
     "Win32_Networking_WinSock",
 ], optional = true }
+
+[package.metadata.docs.rs]
+all-features = true
