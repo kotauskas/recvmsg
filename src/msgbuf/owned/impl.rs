@@ -1,7 +1,7 @@
 use super::{OwnedBuf, OwnedBufRawParts};
 use core::ptr::NonNull;
 
-unsafe impl OwnedBuf for Vec<u8> {
+unsafe impl OwnedBuf for alloc::vec::Vec<u8> {
     #[inline]
     unsafe fn from_raw_parts(OwnedBufRawParts { ptr, cap, init }: OwnedBufRawParts) -> Self {
         unsafe { Self::from_raw_parts(ptr.as_ptr(), init, cap) }

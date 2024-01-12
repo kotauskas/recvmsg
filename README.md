@@ -1,6 +1,6 @@
 # `recvmsg`
 
-[![Rust version: 1.56+](https://img.shields.io/badge/rust%20version-1.56+-orange)](https://blog.rust-lang.org/2021/10/21/Rust-1.56.0.html)
+[![Rust version: 1.60+](https://img.shields.io/badge/rust%20version-1.60+-orange)](https://blog.rust-lang.org/2021/10/21/Rust-1.60.0.html)
 
 Traits for receiving datagrams reliably, without truncation.
 

@@ -3,6 +3,7 @@
 // FUTURE downcasting, requires TypeId in const contexts
 
 use super::*;
+use alloc::vec::Vec;
 
 type VtGrow = unsafe fn(OwnedBufRawParts, usize) -> OwnedBufRawParts;
 type VtDrop = unsafe fn(OwnedBufRawParts);
@@ -14,7 +15,7 @@ pub(crate) struct OwnedBufVtable {
 }
 impl OwnedBufVtable {
     // TODO support no-alloc here
-    pub(crate) const DEFAULT: &'static Self = Self::new::<alloc::vec::Vec<u8>>();
+    pub(crate) const DEFAULT: &'static Self = Self::new::<Vec<u8>>();
     #[inline]
     const fn new<T: OwnedBuf>() -> &'static Self {
         unsafe fn vtgrow<T: OwnedBuf>(raw: OwnedBufRawParts, new_cap: usize) -> OwnedBufRawParts {

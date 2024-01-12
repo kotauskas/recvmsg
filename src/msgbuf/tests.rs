@@ -1,4 +1,5 @@
 use super::MsgBuf;
+use alloc::vec::Vec;
 use core::mem::MaybeUninit;
 
 #[test]

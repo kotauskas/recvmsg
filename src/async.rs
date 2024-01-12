@@ -35,7 +35,7 @@ mod r#impl {
             mod tokio;
         }
 
-        #[cfg(test)]
+        #[cfg(all(feature = "tokio", test))]
         mod tests;
     }
 }
@@ -46,7 +46,7 @@ use core::{
     task::{Context, Poll},
 };
 
-#[cfg(feature = "std")]
+#[cfg(feature = "tokio")]
 fn ioloop<S, R>(
     slf: &mut S,
     cx: &mut Context<'_>,
