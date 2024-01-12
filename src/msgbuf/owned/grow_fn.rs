@@ -26,6 +26,12 @@ impl GrowFn for DefaultFn {
 
 /// Applies the given growth function to the given owned buffer type.
 pub struct WithGrowFn<Owned, Gfn>(pub Owned, PhantomData<fn(Gfn)>);
+impl<Owned, Gfn> From<Owned> for WithGrowFn<Owned, Gfn> {
+    #[inline]
+    fn from(owned: Owned) -> Self {
+        Self(owned, PhantomData)
+    }
+}
 unsafe impl<Owned: OwnedBuf, Gfn: GrowFn> OwnedBuf for WithGrowFn<Owned, Gfn> {
     #[inline]
     unsafe fn from_raw_parts(raw_parts: OwnedBufRawParts) -> Self {
