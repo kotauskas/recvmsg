@@ -57,7 +57,15 @@ fn grow_vec() {
 #[test]
 fn extend() {
     let mut bufbak = [MaybeUninit::uninit(); 10];
-    let mut buf = MsgBuf::<'_, Vec<_>>::from(bufbak.as_mut());
+    let mut buf = MsgBuf::from(bufbak.as_mut());
     buf.extend_from_slice(&[1; 10]).unwrap();
     assert_eq!(buf.len_filled(), 10);
+}
+
+#[test]
+fn drop() {
+    // One tebibyte.
+    for _ in 0..32768 {
+        let _ = MsgBuf::with_capacity::<Vec<u8>>(1024 * 1024 * 32);
+    }
 }

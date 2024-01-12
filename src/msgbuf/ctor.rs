@@ -1,4 +1,6 @@
-use super::{owned::OwnedBuf, MsgBuf, MuU8};
+use super::{
+    owned::OwnedBuf, owned_default, DynOwnedBuf, MsgBuf, MuU8, OwnedBufRawParts, OwnedBufVtable,
+};
 use alloc::{boxed::Box, vec::Vec};
 use core::{
     mem::{ManuallyDrop, MaybeUninit},
@@ -6,7 +8,7 @@ use core::{
     {marker::PhantomData, ptr::NonNull},
 };
 
-impl<Owned: OwnedBuf> Default for MsgBuf<'_, Owned> {
+impl Default for MsgBuf<'_> {
     #[inline]
     fn default() -> Self {
         Self {
@@ -14,7 +16,7 @@ impl<Owned: OwnedBuf> Default for MsgBuf<'_, Owned> {
             cap: 0,
             init: 0,
             borrow: None,
-            own: PhantomData,
+            own_vt: OwnedBufVtable::DEFAULT,
             fill: 0,
             has_msg: false,
             quota: None,
@@ -22,20 +24,38 @@ impl<Owned: OwnedBuf> Default for MsgBuf<'_, Owned> {
     }
 }
 
-impl<'slice, Owned: OwnedBuf> MsgBuf<'slice, Owned> {
-    /// Forgets old buffer in place, if there was one, and replaces it with the given `owned`.
-    pub(super) fn put_owned(&mut self, owned: Owned) {
-        let owned = ManuallyDrop::new(owned);
-        self.ptr = owned.base_ptr();
-        self.cap = owned.capacity();
-        self.borrow = None;
-        self.init = owned.init_cursor();
-        self.fill = 0;
-    }
+/// Constructors.
+impl<'slice> MsgBuf<'slice> {
+    /// Creates an `MsgBuf` from an owned buffer of the given type.
+    ///
+    /// This uses `new_owned_dyn()` under the hood, and does nothing special.
     #[inline]
-    fn with_put_owned(mut self, owned: Owned) -> Self {
-        self.put_owned(owned);
-        self
+    pub fn new_owned<Owned: OwnedBuf>(buf: Owned) -> Self {
+        Self::new_owned_dyn(DynOwnedBuf::new(buf))
+    }
+    /// Creates an `MsgBuf` from an owned buffer trait object.
+    ///
+    /// The resulting buffer has the same capacity and initialization cursor, but no quota.
+    #[inline]
+    pub fn new_owned_dyn(buf: DynOwnedBuf) -> Self {
+        let mut slf = Self::default();
+        slf.put_owned(buf);
+        slf
+    }
+
+    /// Creates an `MsgBuf` by allocating an owned buffer of the given type and size.
+    pub fn with_capacity<Owned: OwnedBuf>(cap: usize) -> Self {
+        let mut owned = owned_default::<Owned>();
+        owned.grow(cap);
+        Self::new_owned(owned)
+    }
+
+    /// Forgets old buffer in place, if there was one, and replaces it with the given `owned`.
+    pub(super) fn put_owned(&mut self, owned: DynOwnedBuf) {
+        (OwnedBufRawParts { ptr: self.ptr, cap: self.cap, init: self.init }, self.own_vt) =
+            owned.into_raw_and_vt();
+        self.borrow = None;
+        self.fill = 0;
     }
     /// Forgets old buffer in place, if there was one, and replaces it with the given `slice`.
     fn put_slice(&mut self, slice: &'slice mut [MuU8]) {
@@ -45,24 +65,29 @@ impl<'slice, Owned: OwnedBuf> MsgBuf<'slice, Owned> {
         self.init = 0;
         self.fill = 0;
     }
-    #[inline]
-    fn with_put_slice(mut self, slice: &'slice mut [MuU8]) -> Self {
-        self.put_slice(slice);
-        self
-    }
 }
 
 /// Sets `init` = `owned.len()`.
-impl<Owned: OwnedBuf> From<Owned> for MsgBuf<'_, Owned> {
+impl<Owned: OwnedBuf> From<Owned> for MsgBuf<'_> {
+    #[inline]
     fn from(owned: Owned) -> Self {
-        Self::default().with_put_owned(owned)
+        Self::new_owned(owned)
     }
 }
 
-impl<'slice, Owned: OwnedBuf> From<&'slice mut [MaybeUninit<u8>]> for MsgBuf<'slice, Owned> {
+impl From<DynOwnedBuf> for MsgBuf<'_> {
+    #[inline]
+    fn from(owned: DynOwnedBuf) -> Self {
+        Self::new_owned_dyn(owned)
+    }
+}
+
+impl<'slice> From<&'slice mut [MaybeUninit<u8>]> for MsgBuf<'slice> {
     #[inline]
     fn from(borrowed: &'slice mut [MaybeUninit<u8>]) -> Self {
-        Self::default().with_put_slice(borrowed)
+        let mut slf = Self::default();
+        slf.put_slice(borrowed);
+        slf
     }
 }
 impl From<Box<[MaybeUninit<u8>]>> for MsgBuf<'_> {
@@ -73,7 +98,7 @@ impl From<Box<[MaybeUninit<u8>]>> for MsgBuf<'_> {
 }
 
 /// Sets `init` = `borrowed.len()`.
-impl<'slice, Owned: OwnedBuf> From<&'slice mut [u8]> for MsgBuf<'slice, Owned> {
+impl<'slice> From<&'slice mut [u8]> for MsgBuf<'slice> {
     #[inline]
     fn from(borrowed: &'slice mut [u8]) -> Self {
         let (base, len) = (borrowed.as_mut_ptr(), borrowed.len());

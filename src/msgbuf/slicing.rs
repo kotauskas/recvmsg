@@ -1,4 +1,4 @@
-use super::{owned::OwnedBuf, MsgBuf, MuU8};
+use super::{MsgBuf, MuU8};
 use core::{
     mem::transmute,
     ops::{Deref, DerefMut},
@@ -16,7 +16,7 @@ unsafe fn assume_init_slice_mut(slice: &mut [MuU8]) -> &mut [u8] {
 ///
 /// Not particularly useful, although the resulting slice can be sub-sliced and transmuted. Exists
 /// primarily due to the bound on `DerefMut`.
-impl<Owned: OwnedBuf> Deref for MsgBuf<'_, Owned> {
+impl Deref for MsgBuf<'_> {
     type Target = [MuU8];
     #[inline]
     fn deref(&self) -> &[MuU8] {
@@ -24,7 +24,7 @@ impl<Owned: OwnedBuf> Deref for MsgBuf<'_, Owned> {
     }
 }
 /// Borrows the whole buffer.
-impl<Owned: OwnedBuf> DerefMut for MsgBuf<'_, Owned> {
+impl DerefMut for MsgBuf<'_> {
     #[inline]
     fn deref_mut(&mut self) -> &mut [MuU8] {
         unsafe { slice::from_raw_parts_mut(self.as_mut_ptr().cast(), self.cap) }
@@ -32,7 +32,7 @@ impl<Owned: OwnedBuf> DerefMut for MsgBuf<'_, Owned> {
 }
 
 /// Safe immutable access.
-impl<Owned: OwnedBuf> MsgBuf<'_, Owned> {
+impl MsgBuf<'_> {
     /// Returns the most recently received message, or an empty slice if no message has been
     /// received yet.
     #[inline]
@@ -42,7 +42,7 @@ impl<Owned: OwnedBuf> MsgBuf<'_, Owned> {
 }
 
 /// Parts, slicing and splitting.
-impl<'slice, Owned: OwnedBuf> MsgBuf<'slice, Owned> {
+impl<'slice> MsgBuf<'slice> {
     /// Borrows the filled part of the buffer.
     #[inline]
     pub fn filled_part(&self) -> &[u8] {

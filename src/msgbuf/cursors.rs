@@ -1,8 +1,8 @@
-use super::{owned::OwnedBuf, MsgBuf, MuU8};
+use super::{MsgBuf, MuU8};
 use core::cmp::max;
 
 /// Cursors of the buffer.
-impl<Owned: OwnedBuf> MsgBuf<'_, Owned> {
+impl MsgBuf<'_> {
     /// Returns the length of the filled part, which is numerically equal to the offset from the
     /// *base* pointer at which the unfilled part starts.
     #[inline(always)]

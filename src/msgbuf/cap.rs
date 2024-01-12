@@ -1,4 +1,4 @@
-use super::{super::QuotaExceeded, owned::OwnedBuf, MsgBuf};
+use super::{super::QuotaExceeded, MsgBuf};
 use core::{
     cmp::{max, min},
     mem::size_of,
@@ -6,7 +6,7 @@ use core::{
 };
 
 /// Capacity and reallocation.
-impl<Owned: OwnedBuf> MsgBuf<'_, Owned> {
+impl MsgBuf<'_> {
     /// Returns the buffer's total capacity, including the already filled part.
     #[inline(always)]
     pub fn capacity(&self) -> usize {
@@ -62,7 +62,7 @@ impl<Owned: OwnedBuf> MsgBuf<'_, Owned> {
         let mut owned = self.take_owned().unwrap_or_default();
         let borrowed = is_borrowed.then(|| self.take_borrowed()).flatten();
 
-        owned.grow(new_cap_exact);
+        owned.grow(new_cap_exact); // This performs the safety check
         self.put_owned(owned);
         if let Some(borrowed) = borrowed {
             self[..fill].copy_from_slice(&borrowed[..fill]);

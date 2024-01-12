@@ -1,19 +1,20 @@
-use super::{owned::OwnedBuf, MsgBuf, MuU8};
+use super::{DynOwnedBuf, MsgBuf, MuU8, OwnedBufRawParts};
 use core::{mem::MaybeUninit, slice};
 
 /// Ownership utilities.
-impl<'slice, Owned: OwnedBuf> MsgBuf<'slice, Owned> {
+impl<'slice> MsgBuf<'slice> {
     /// Takes the owned buffer, leaving an empty one in its place. Returns `None` if the buffer is
     /// borrowed, in which case `self` is left untouched. (Zero-sized buffers are considered both
     /// borrowed and owned.)
     #[inline]
-    pub fn take_owned(&mut self) -> Option<Owned> {
+    pub fn take_owned(&mut self) -> Option<DynOwnedBuf> {
         let Self { ptr, cap, init, borrow, .. } = *self;
         if borrow.is_some() && cap > 0 {
             return None;
         }
-        self.put_owned(Owned::default());
-        Some(unsafe { Owned::from_raw_parts(ptr, cap, init) })
+        let raw = OwnedBufRawParts { ptr, cap, init };
+        self.forget_in_place();
+        Some(unsafe { DynOwnedBuf::from_raw_and_vt(raw, self.own_vt) })
     }
 
     /// Takes the slice and returns it with its original lifetime (regardless of what lifetime
@@ -25,7 +26,7 @@ impl<'slice, Owned: OwnedBuf> MsgBuf<'slice, Owned> {
         if borrow.is_none() && cap > 0 {
             return None;
         };
-        self.put_owned(Owned::default());
+        self.forget_in_place();
         // SAFETY: `self` at this point is empty, and the slice we're getting here is a direct
         // descendant (reborrow) of that slice, which means that this is the only instance of that
         // slice in existence at this level in the borrow stack (I *think* that's how this sort of
@@ -37,5 +38,9 @@ impl<'slice, Owned: OwnedBuf> MsgBuf<'slice, Owned> {
         // function is based on). I haven't tried using the `polonius_the_crab` crate because that's
         // a whole extra dependency, but it should be doable with that crate if need be.
         Some(unsafe { slice::from_raw_parts_mut(ptr.as_ptr().cast::<MuU8>(), cap) })
+    }
+
+    fn forget_in_place(&mut self) {
+        (self.cap, self.init, self.fill, self.has_msg, self.borrow) = (0, 0, 0, false, None);
     }
 }

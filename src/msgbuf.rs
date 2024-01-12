@@ -33,7 +33,7 @@ type MuU8 = MaybeUninit<u8>;
 /// # use {core::mem::MaybeUninit, recvmsg::MsgBuf};
 /// // An uninitialized buffer:
 /// let mut arr = [MaybeUninit::new(0); 32];
-/// let buf = MsgBuf::<()>::from(arr.as_mut());
+/// let buf = MsgBuf::from(arr.as_mut());
 /// assert_eq!(buf.capacity(), 32);
 /// assert_eq!(buf.init_part().len(), 0); // Assumes nothing about the buffer.
 /// assert_eq!(buf.filled_part().len(), 0);
@@ -41,7 +41,7 @@ type MuU8 = MaybeUninit<u8>;
 ///
 /// // A fully initialized buffer:
 /// let mut arr = [0; 32];
-/// let buf = MsgBuf::<()>::from(arr.as_mut());
+/// let buf = MsgBuf::from(arr.as_mut());
 /// assert_eq!(buf.capacity(), 32);
 /// // Whole buffer can be passed to methods that take &mut [u8]:
 /// assert_eq!(buf.init_part().len(), 32);
@@ -89,8 +89,7 @@ type MuU8 = MaybeUninit<u8>;
 /// assert_eq!(buf.len_filled(), 0);
 /// assert!(!buf.has_msg);
 /// ```
-pub struct MsgBuf<'slice, Owned: OwnedBuf = Vec<u8>> {
-    // TODO comment out to ensure completeness of implementations
+pub struct MsgBuf<'slice> {
     ptr: NonNull<u8>,
     // All cursors count from `ptr`, not from each other.
     /// How much is allocated.
@@ -100,8 +99,7 @@ pub struct MsgBuf<'slice, Owned: OwnedBuf = Vec<u8>> {
     /// Designates whether the buffer is borrowed or owned. `Option` is completely decorative and
     /// acts as a fancy boolean here.
     borrow: Option<PhantomData<&'slice mut [MuU8]>>,
-    /// Don't need two fancy booleans.
-    own: PhantomData<Owned>,
+    own_vt: &'static OwnedBufVtable,
     /// The length of the logically filled part of the buffer. Usually equal to the length of the
     /// last received message. May not exceed `init`.
     fill: usize,
@@ -121,19 +119,19 @@ pub struct MsgBuf<'slice, Owned: OwnedBuf = Vec<u8>> {
     pub quota: Option<usize>,
 }
 // Who else remembers that this trait is a thing?
-impl<Owned: OwnedBuf + UnwindSafe> UnwindSafe for MsgBuf<'_, Owned> {}
+impl UnwindSafe for MsgBuf<'_> {}
 
-unsafe impl<Owned: OwnedBuf + Send> Send for MsgBuf<'_, Owned> {}
-unsafe impl<Owned: OwnedBuf + Sync> Sync for MsgBuf<'_, Owned> {}
+unsafe impl Send for MsgBuf<'_> {}
+unsafe impl Sync for MsgBuf<'_> {}
 
-impl<Owned: OwnedBuf> Drop for MsgBuf<'_, Owned> {
+impl Drop for MsgBuf<'_> {
     fn drop(&mut self) {
         self.take_owned(); // If owned, returns `Some(vec)`, which is then dropped.
     }
 }
 
 /// Base pointer getters.
-impl<Owned: OwnedBuf> MsgBuf<'_, Owned> {
+impl MsgBuf<'_> {
     /// Returns the base of the buffer as a const-pointer.
     #[inline(always)]
     pub fn as_ptr(&self) -> *const u8 {
