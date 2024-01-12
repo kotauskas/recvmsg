@@ -33,7 +33,7 @@ use core::{mem::ManuallyDrop, ptr::NonNull};
 ///     - The base pointer may only change as a result of `.grow()`. It must not change on any other
 ///       occasion.
 /// - Capacity must not spuriously decrease.
-pub unsafe trait OwnedBuf: Sized {
+pub unsafe trait OwnedBuf: Send + Sync + Sized {
     /// Creates the owned buffer from its base pointer, capacity and the initialization cursor,
     /// consuming ownership. If `cap` is zero, the buffer is considered empty and the value of `ptr`
     /// is insignificant.
@@ -72,3 +72,5 @@ pub struct OwnedBufRawParts {
     /// internal allocator data structures). Must not exceed the capacity.
     pub init: usize,
 }
+unsafe impl Send for OwnedBufRawParts {}
+unsafe impl Sync for OwnedBufRawParts {} // POD.

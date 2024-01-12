@@ -29,11 +29,16 @@ impl OwnedBufVtable {
 }
 
 /// Trait object for [`OwnedBuf`].
+///
+/// This allows [`MsgBuf`](crate::MsgBuf) to not be generic, allowing the message reception traits
+/// to be object-safe.
 #[derive(Debug)]
 pub struct DynOwnedBuf {
     vt: &'static OwnedBufVtable,
     raw: OwnedBufRawParts,
 }
+unsafe impl Send for DynOwnedBuf {}
+unsafe impl Sync for DynOwnedBuf {}
 impl DynOwnedBuf {
     /// Erases the type of `buf` and turns it into a trait object.
     #[inline]

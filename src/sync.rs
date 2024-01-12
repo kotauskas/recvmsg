@@ -65,6 +65,11 @@ pub trait TruncatingRecvMsg {
         Ok(())
     }
 }
+fn _assert_object_safe_trm<E, AB, TRM: TruncatingRecvMsg<Error = E, AddrBuf = AB>>(
+    x: &TRM,
+) -> &(dyn TruncatingRecvMsg<Error = E, AddrBuf = AB> + '_) {
+    x
+}
 
 /// Like [`TruncatingRecvMsg`], but reports the exact true size of truncated messages.
 pub trait TruncatingRecvMsgWithFullSize: TruncatingRecvMsg {
@@ -76,6 +81,15 @@ pub trait TruncatingRecvMsgWithFullSize: TruncatingRecvMsg {
         buf: &mut MsgBuf<'_>,
         abuf: Option<&mut Self::AddrBuf>,
     ) -> Result<TryRecvResult, Self::Error>;
+}
+fn _assert_object_safe_trmwfs<
+    E,
+    AB,
+    TRM: TruncatingRecvMsgWithFullSize<Error = E, AddrBuf = AB>,
+>(
+    x: &TRM,
+) -> &(dyn TruncatingRecvMsgWithFullSize<Error = E, AddrBuf = AB> + '_) {
+    x
 }
 
 /// Receiving from socket-like connections with message boundaries without truncation.
@@ -102,4 +116,9 @@ pub trait RecvMsg {
         buf: &mut MsgBuf<'_>,
         abuf: Option<&mut Self::AddrBuf>,
     ) -> Result<RecvResult, Self::Error>;
+}
+fn _assert_object_safe_rm<E, AB, RM: RecvMsg<Error = E, AddrBuf = AB>>(
+    x: &RM,
+) -> &(dyn RecvMsg<Error = E, AddrBuf = AB> + '_) {
+    x
 }

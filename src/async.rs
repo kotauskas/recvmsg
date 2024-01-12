@@ -1,7 +1,5 @@
 //! Async reliable message reception trait and its helpers.
 
-// TODO recvfrom
-
 // Epic MSRV failure
 macro_rules! ready {
     ($e:expr) => {
@@ -94,6 +92,8 @@ pub trait TruncatingRecvMsg {
     /// will return the same message, with bigger buffer sizes receiving more of the message if it
     /// was truncated.
     ///
+    /// In the `Ok(..)` cases, if `abuf` is `Some(..)`, it is filled with the address of the sender.
+    ///
     /// # Contract notes
     /// - **Must** set `buf.is_one_msg` to `true` when returning `Poll::Ready(Ok(..))`.
     /// - **Must not** affect the capacity of `buf`.
@@ -128,6 +128,11 @@ pub trait TruncatingRecvMsg {
         .into()
     }
 }
+fn _assert_object_safe_trm<E, AB, TRM: TruncatingRecvMsg<Error = E, AddrBuf = AB>>(
+    x: &TRM,
+) -> &(dyn TruncatingRecvMsg<Error = E, AddrBuf = AB> + '_) {
+    x
+}
 
 /// Like [`TruncatingRecvMsg`], but reports the exact true size of truncated messages.
 ///
@@ -143,6 +148,15 @@ pub trait TruncatingRecvMsgWithFullSize: TruncatingRecvMsg {
         buf: &mut MsgBuf<'_>,
         abuf: Option<&mut Self::AddrBuf>,
     ) -> Poll<Result<TryRecvResult, Self::Error>>;
+}
+fn _assert_object_safe_trmwfs<
+    E,
+    AB,
+    TRM: TruncatingRecvMsgWithFullSize<Error = E, AddrBuf = AB>,
+>(
+    x: &TRM,
+) -> &(dyn TruncatingRecvMsgWithFullSize<Error = E, AddrBuf = AB> + '_) {
+    x
 }
 
 /// Implementation of asynchronously receiving from socket-like connections with message boundaries
@@ -164,6 +178,8 @@ pub trait RecvMsg {
     /// Polls a future that receives one message using the given buffer, (re)allocating the buffer
     /// if necessary.
     ///
+    /// In the `Ok(..)` cases, if `abuf` is `Some(..)`, it is filled with the address of the sender.
+    ///
     /// If the operation could not be completed for external reasons, an error from the outermost
     /// `Result` is returned.
     fn poll_recv_msg(
@@ -172,4 +188,9 @@ pub trait RecvMsg {
         buf: &mut MsgBuf<'_>,
         abuf: Option<&mut Self::AddrBuf>,
     ) -> Poll<Result<RecvResult, Self::Error>>;
+}
+fn _assert_object_safe_rm<E, AB, RM: RecvMsg<Error = E, AddrBuf = AB>>(
+    x: &RM,
+) -> &(dyn RecvMsg<Error = E, AddrBuf = AB> + '_) {
+    x
 }
