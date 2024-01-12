@@ -30,7 +30,7 @@ pub trait TruncatingRecvMsg {
 
     /// The buffer used for sender address reception.
     ///
-    /// Conventionally `()` if sender addresses are not available.
+    /// If sender addresses are not available, this should be [`NoAddrBuf`](crate::NoAddrBuf).
     type AddrBuf;
 
     /// Receives one message into the given buffer, returning:
@@ -102,7 +102,7 @@ pub trait RecvMsg {
 
     /// The buffer used for sender address reception.
     ///
-    /// Conventionally `()` if sender addresses are not available.
+    /// If sender addresses are not available, this should be [`NoAddrBuf`](crate::NoAddrBuf).
     type AddrBuf;
 
     /// Receives one message using the given buffer, (re)allocating the buffer if necessary.

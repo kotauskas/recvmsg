@@ -78,7 +78,7 @@ pub trait TruncatingRecvMsg {
 
     /// The buffer used for sender address reception.
     ///
-    /// Conventionally `()` if sender addresses are not available.
+    /// If sender addresses are not available, this should be [`NoAddrBuf`](crate::NoAddrBuf).
     type AddrBuf;
 
     /// Polls a future that receives one message into the given buffer, returning within
@@ -172,7 +172,7 @@ pub trait RecvMsg {
 
     /// The buffer used for sender address reception.
     ///
-    /// Conventionally `()` if sender addresses are not available.
+    /// If sender addresses are not available, this should be [`NoAddrBuf`](crate::NoAddrBuf).
     type AddrBuf;
 
     /// Polls a future that receives one message using the given buffer, (re)allocating the buffer

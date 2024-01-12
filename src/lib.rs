@@ -84,6 +84,10 @@ sufficient"
     )
 }
 
+/// The type of `AddrBuf` associated types on implementations of traits from this crate for types
+/// that do not support receiving the address of the peer together with received messages.
+pub type NoAddrBuf = core::convert::Infallible;
+
 /// Result type for `.recv_msg()` methods.
 #[derive(Copy, Clone, Debug, Default)]
 pub enum RecvResult {
