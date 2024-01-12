@@ -1,5 +1,7 @@
 // Déjà vu! I have been in this place before...
 
+// FUTURE downcasting, requires TypeId in const contexts
+
 use super::*;
 
 type VtGrow = unsafe fn(OwnedBufRawParts, usize) -> OwnedBufRawParts;

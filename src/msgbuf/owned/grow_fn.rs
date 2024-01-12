@@ -8,7 +8,7 @@ use core::{
 ///
 /// It makes no sense for implementors to not be zero-sized (though they can be never-sized, at your
 /// discretion).
-pub trait GrowFn {
+pub trait GrowFn: 'static {
     /// Grows the buffer up to the given capacity.
     ///
     /// Does not necessarily have to be able to decrease the buffer's capacity.
