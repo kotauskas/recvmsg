@@ -4,7 +4,9 @@ mod extract_address;
 mod r#impl;
 pub(crate) mod wrap;
 
-use crate::{MsgBuf, RecvMsg, RecvResult, TruncatingRecvMsg, TryRecvResult};
+use crate::{MsgBuf, RecvMsg, RecvResult, TruncatingRecvMsg};
+#[cfg(any(target_os = "linux", target_os = "android"))]
+use crate::{TruncatingRecvMsgWithFullSize, TryRecvResult};
 use std::{
     io,
     net::{SocketAddr as InetAddr, UdpSocket},
@@ -44,7 +46,7 @@ impl TruncatingRecvMsg for UdpSocket {
 
 /// Linux-only, requires kernel 3.4 or newer.
 #[cfg(any(target_os = "linux", target_os = "android"))]
-impl crate::TruncatingRecvMsgWithFullSize for &UdpSocket {
+impl TruncatingRecvMsgWithFullSize for &UdpSocket {
     #[inline]
     fn recv_trunc_with_full_size(
         &mut self,
@@ -58,7 +60,7 @@ impl crate::TruncatingRecvMsgWithFullSize for &UdpSocket {
 
 /// Linux-only, requires kernel 3.4 or newer.
 #[cfg(any(target_os = "linux", target_os = "android"))]
-impl crate::TruncatingRecvMsgWithFullSize for UdpSocket {
+impl TruncatingRecvMsgWithFullSize for UdpSocket {
     #[inline]
     fn recv_trunc_with_full_size(
         &mut self,
@@ -126,7 +128,7 @@ impl TruncatingRecvMsg for UnixDatagram {
 
 /// Linux-only, requires kernel 3.4 or newer.
 #[cfg(any(target_os = "linux", target_os = "android"))]
-impl crate::TruncatingRecvMsgWithFullSize for &UnixDatagram {
+impl TruncatingRecvMsgWithFullSize for &UnixDatagram {
     #[inline]
     fn recv_trunc_with_full_size(
         &mut self,
@@ -140,7 +142,7 @@ impl crate::TruncatingRecvMsgWithFullSize for &UnixDatagram {
 
 /// Linux-only, requires kernel 3.4 or newer.
 #[cfg(any(target_os = "linux", target_os = "android"))]
-impl crate::TruncatingRecvMsgWithFullSize for UnixDatagram {
+impl TruncatingRecvMsgWithFullSize for UnixDatagram {
     #[inline]
     fn recv_trunc_with_full_size(
         &mut self,

@@ -1,6 +1,6 @@
-use crate::{
-    os::unix::recv_trunc_recvmsg_with_msghdr, MsgBuf, RecvResult, TruncatingRecvMsg, TryRecvResult,
-};
+#[cfg(any(target_os = "linux", target_os = "android"))]
+use crate::TryRecvResult;
+use crate::{os::unix::recv_trunc_recvmsg_with_msghdr, MsgBuf, RecvResult, TruncatingRecvMsg};
 use libc::{msghdr, sockaddr_storage, socklen_t, MSG_PEEK};
 use std::{io, mem::zeroed, os::fd::BorrowedFd};
 

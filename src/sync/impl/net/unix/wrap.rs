@@ -1,5 +1,5 @@
 use super::{extract_address::*, r#impl::*};
-use crate::{MsgBuf, RecvResult, TryRecvResult};
+use crate::{MsgBuf, RecvResult};
 use libc::{sockaddr_storage, socklen_t};
 use std::{
     io,
@@ -60,7 +60,7 @@ pub(crate) fn recv_trunc_with_full_size_ip(
     peek: bool,
     buf: &mut MsgBuf<'_>,
     abuf: Option<&mut InetAddr>,
-) -> io::Result<TryRecvResult> {
+) -> io::Result<crate::TryRecvResult> {
     let mut fused_abuf = prepare_storage();
     let ret =
         recv_trunc_with_full_size(socket, peek, buf, abuf.is_some().then_some(&mut fused_abuf))?;
@@ -74,7 +74,7 @@ pub(crate) fn recv_trunc_with_full_size_unix(
     peek: bool,
     buf: &mut MsgBuf<'_>,
     abuf: Option<&mut UnixAddr>,
-) -> io::Result<TryRecvResult> {
+) -> io::Result<crate::TryRecvResult> {
     let mut fused_abuf = prepare_storage();
     let ret =
         recv_trunc_with_full_size(socket, peek, buf, abuf.is_some().then_some(&mut fused_abuf))?;
